@@ -1,0 +1,88 @@
+"""Reusable sidebar filter components for Walker Brain Portal."""
+
+import streamlit as st
+from datetime import datetime, timedelta
+from utils.queries import get_case_types, get_emotional_tones, get_outcomes, get_languages
+
+
+def case_type_filter(key: str = "case_type") -> list[str] | None:
+    """Multiselect for case types. Returns None if 'All' selected."""
+    options = get_case_types()
+    selected = st.multiselect("Case Type", options, key=key)
+    return selected or None
+
+
+def quality_range_filter(
+    default_min: int = 0,
+    default_max: int = 100,
+    key: str = "quality",
+) -> tuple[int, int]:
+    """Slider for quality score range."""
+    return st.slider(
+        "Quality Score",
+        min_value=0,
+        max_value=100,
+        value=(default_min, default_max),
+        key=key,
+    )
+
+
+def date_range_filter(
+    default_days: int = 30,
+    key: str = "date_range",
+) -> tuple[str, str]:
+    """Date picker for date range. Returns ISO strings."""
+    col1, col2 = st.columns(2)
+    default_start = datetime.utcnow().date() - timedelta(days=default_days)
+    default_end = datetime.utcnow().date()
+    with col1:
+        start = st.date_input("From", value=default_start, key=f"{key}_start")
+    with col2:
+        end = st.date_input("To", value=default_end, key=f"{key}_end")
+    return start.isoformat(), end.isoformat() + "T23:59:59"
+
+
+def language_filter(key: str = "language") -> list[str] | None:
+    """Multiselect for language."""
+    options = get_languages()
+    selected = st.multiselect("Language", options, key=key)
+    return selected or None
+
+
+def emotional_tone_filter(key: str = "tone") -> list[str] | None:
+    """Multiselect for emotional tone. Queries live distinct values."""
+    options = get_emotional_tones()
+    selected = st.multiselect("Emotional Tone", options, key=key)
+    return selected or None
+
+
+def outcome_filter(key: str = "outcome") -> list[str] | None:
+    """Multiselect for outcome."""
+    options = get_outcomes()
+    selected = st.multiselect("Outcome", options, key=key)
+    return selected or None
+
+
+def text_search_filter(key: str = "text_search") -> str | None:
+    """Text input for searching summaries, quotes, topics."""
+    text = st.text_input(
+        "Search (summary, quote, topic)",
+        key=key,
+        placeholder="e.g. back pain, trucking, fee...",
+    )
+    return text if text else None
+
+
+def testimonial_toggle(key: str = "testimonial_only") -> bool:
+    """Checkbox to filter only testimonial candidates."""
+    return st.checkbox("Testimonial candidates only", key=key)
+
+
+def content_worthy_toggle(key: str = "content_worthy") -> bool:
+    """Checkbox to filter only content-worthy calls."""
+    return st.checkbox("Content-worthy only", key=key)
+
+
+def has_quote_toggle(key: str = "has_quote") -> bool:
+    """Checkbox to filter calls with quotes."""
+    return st.checkbox("Has quote", key=key)

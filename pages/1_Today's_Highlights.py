@@ -1,0 +1,203 @@
+"""Today's Highlights — Marketing-focused dashboard with curated picks."""
+
+import json
+import streamlit as st
+import pandas as pd
+from utils.auth import check_password
+
+if not check_password():
+    st.stop()
+
+st.title("Today's Highlights")
+st.caption("Curated content picks for the creative team.")
+
+from components.cards import metric_card, quote_card
+from components.charts import quality_histogram, volume_trend
+from utils.queries import (
+    get_weekly_metric_counts, fetch_quotes, get_daily_volume,
+)
+from utils.constants import quality_band
+from utils.database import query_table, get_supabase
+
+client = get_supabase()
+
+# --- Section 1: Metric cards ---
+metrics = get_weekly_metric_counts(days=7)
+
+col1, col2, col3, col4 = st.columns(4)
+with col1:
+    metric_card("New Quotes (7d)", metrics["quotes"], color="#1565c0")
+with col2:
+    metric_card("Testimonial Candidates (7d)", metrics["testimonials"], color="#388e3c")
+with col3:
+    metric_card("Content-Worthy Calls (7d)", metrics["content_worthy"], color="#7b1fa2")
+with col4:
+    median = metrics["median_quality"]
+    _, band_color = quality_band(median)
+    metric_card("Median Quality (7d)", median, color=band_color)
+
+st.markdown("---")
+
+# --- Section 2 & 3: Top quotes + Trending ---
+left, right = st.columns([3, 2])
+
+with left:
+    st.markdown("### Top 5 Quotes This Week")
+    from datetime import datetime, timedelta
+    week_cutoff = (datetime.utcnow() - timedelta(days=7)).isoformat()
+    top_quotes = fetch_quotes(min_quality=0, max_quality=100, limit=5, start_date=week_cutoff)
+    if top_quotes:
+        for row in top_quotes:
+            quote_card(row, show_copy=True)
+    else:
+        st.info("No quotes available yet.")
+
+with right:
+    st.markdown("### Trending This Week")
+
+    # Top objection category (from analysis_results.objection_categories)
+    try:
+        from datetime import datetime, timedelta
+        cutoff_7d = (datetime.utcnow() - timedelta(days=7)).isoformat()
+        cutoff_14d = (datetime.utcnow() - timedelta(days=14)).isoformat()
+
+        rows = (
+            client.table("analysis_results")
+            .select("objection_categories")
+            .not_.is_("objection_categories", "null")
+            .gte("analyzed_at", cutoff_7d)
+            .execute()
+            .data
+        )
+        obj_counts: dict[str, int] = {}
+        for r in rows:
+            cats = r.get("objection_categories") or []
+            if isinstance(cats, str):
+                try:
+                    cats = json.loads(cats)
+                except (json.JSONDecodeError, TypeError):
+                    cats = []
+            if isinstance(cats, list):
+                for c in cats:
+                    if isinstance(c, str):
+                        obj_counts[c] = obj_counts.get(c, 0) + 1
+        if obj_counts:
+            top_obj = max(obj_counts, key=obj_counts.get)
+            st.markdown(f"**Top objection:** {top_obj} ({obj_counts[top_obj]} calls)")
+        else:
+            st.caption("No objection data this week.")
+    except Exception:
+        st.caption("Objection data unavailable.")
+
+    # Trending case types
+    try:
+        rows_7d = (
+            client.table("analysis_results")
+            .select("case_type")
+            .not_.is_("case_type", "null")
+            .gte("analyzed_at", cutoff_7d)
+            .execute()
+            .data
+        )
+        ct_counts: dict[str, int] = {}
+        for r in rows_7d:
+            ct = r.get("case_type", "")
+            if ct:
+                ct_counts[ct] = ct_counts.get(ct, 0) + 1
+        if ct_counts:
+            top_3 = sorted(ct_counts.items(), key=lambda x: -x[1])[:3]
+            st.markdown("**Top case types (7d):**")
+            for ct, count in top_3:
+                st.caption(f"  {ct}: {count}")
+        else:
+            st.caption("No case type data this week.")
+    except Exception:
+        st.caption("Case type data unavailable.")
+
+    # Testimonial types
+    try:
+        testimonials = (
+            client.table("analysis_results")
+            .select("testimonial_type")
+            .eq("testimonial_candidate", True)
+            .gte("analyzed_at", cutoff_7d)
+            .execute()
+            .data
+        )
+        tt_counts: dict[str, int] = {}
+        for r in testimonials:
+            tt = r.get("testimonial_type", "")
+            if tt:
+                tt_counts[tt] = tt_counts.get(tt, 0) + 1
+        if tt_counts:
+            st.markdown("**Testimonial candidates (7d):**")
+            for tt, count in tt_counts.items():
+                st.caption(f"  {tt}: {count}")
+        else:
+            st.caption("No testimonial candidates this week.")
+    except Exception:
+        st.caption("Testimonial data unavailable.")
+
+    # Top FAQ signal (from repeated_questions_from_caller)
+    try:
+        faq_rows = (
+            client.table("analysis_results")
+            .select("repeated_questions_from_caller")
+            .not_.is_("repeated_questions_from_caller", "null")
+            .gte("analyzed_at", cutoff_7d)
+            .execute()
+            .data
+        )
+        faq_counts: dict[str, int] = {}
+        for r in faq_rows:
+            qs = r.get("repeated_questions_from_caller") or []
+            if isinstance(qs, str):
+                try:
+                    qs = json.loads(qs)
+                except (json.JSONDecodeError, TypeError):
+                    qs = []
+            if isinstance(qs, list):
+                for q in qs:
+                    if isinstance(q, str):
+                        faq_counts[q] = faq_counts.get(q, 0) + 1
+        if faq_counts:
+            top_faq = max(faq_counts, key=faq_counts.get)
+            st.markdown(f"**Top FAQ signal:** \"{top_faq}\" ({faq_counts[top_faq]})")
+        else:
+            st.caption("No FAQ signals this week.")
+    except Exception:
+        st.caption("FAQ data unavailable.")
+
+
+# --- Section 4: Volume & Quality Trend ---
+st.markdown("---")
+st.markdown("### Volume & Quality Trend (7 days)")
+
+chart_left, chart_right = st.columns(2)
+
+with chart_left:
+    daily = get_daily_volume(days=7)
+    if not daily.empty:
+        fig = volume_trend(daily)
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.caption("No volume data available.")
+
+with chart_right:
+    try:
+        quality_rows = (
+            client.table("analysis_results")
+            .select("quality_score")
+            .not_.is_("quality_score", "null")
+            .gte("analyzed_at", cutoff_7d)
+            .execute()
+            .data
+        )
+        if quality_rows:
+            qdf = pd.DataFrame(quality_rows)
+            fig = quality_histogram(qdf)
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.caption("No quality data available.")
+    except Exception:
+        st.caption("Quality distribution unavailable.")
