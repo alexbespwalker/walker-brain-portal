@@ -29,10 +29,5 @@ col3.page_link("pages/3_Call_Search.py", label="Call Search", icon="🔍")
 
 col4, col5, col6 = st.columns(3)
 col4.page_link("pages/4_Call_Data_Explorer.py", label="Call Data Explorer", icon="📋")
-col5.page_link("pages/5_Testimonial_Pipeline.py", label="Testimonial Pipeline", icon="🎯")
-col6.page_link("pages/6_Case_Studies.py", label="Case Studies", icon="📝")
-
-col7, col8, col9 = st.columns(3)
-col7.page_link("pages/7_Clusters.py", label="Clusters", icon="🔮")
-col8.page_link("pages/8_Tags.py", label="Tags", icon="🏷️")
-col9.page_link("pages/9_System_Health.py", label="System Health", icon="⚙️")
+col5.page_link("pages/8_Tags.py", label="Tags & Objections", icon="🏷️")
+col6.page_link("pages/9_System_Health.py", label="System Health", icon="⚙️")

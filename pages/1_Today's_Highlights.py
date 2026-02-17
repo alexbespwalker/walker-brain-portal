@@ -12,7 +12,7 @@ st.title("Today's Highlights")
 st.caption("Curated content picks for the creative team.")
 
 from components.cards import metric_card, quote_card
-from components.charts import quality_histogram, volume_trend
+from components.charts import quality_histogram, volume_trend, case_type_pie
 from utils.queries import (
     get_weekly_metric_counts, fetch_quotes, get_daily_volume,
 )
@@ -201,3 +201,25 @@ with chart_right:
             st.caption("No quality data available.")
     except Exception:
         st.caption("Quality distribution unavailable.")
+
+# --- Section 5: Case Type Distribution ---
+st.markdown("---")
+st.markdown("### Case Type Distribution (7 days)")
+
+try:
+    case_type_rows = (
+        client.table("analysis_results")
+        .select("case_type")
+        .not_.is_("case_type", "null")
+        .gte("analyzed_at", cutoff_7d)
+        .execute()
+        .data
+    )
+    if case_type_rows:
+        ct_df = pd.DataFrame(case_type_rows)
+        fig = case_type_pie(ct_df)
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.caption("No case type data available.")
+except Exception:
+    st.caption("Case type distribution unavailable.")
