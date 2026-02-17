@@ -87,7 +87,10 @@ def objection_bar(df: pd.DataFrame) -> go.Figure:
 
     Expects columns: obj_category, frequency.
     """
-    df_sorted = df.sort_values("frequency", ascending=True)
+    df_sorted = df.sort_values("frequency", ascending=True).copy()
+    df_sorted["obj_category"] = df_sorted["obj_category"].apply(
+        lambda x: x.replace("_", " ").title() if isinstance(x, str) else x
+    )
     fig = go.Figure(go.Bar(
         x=df_sorted["frequency"],
         y=df_sorted["obj_category"],

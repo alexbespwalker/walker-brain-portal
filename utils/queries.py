@@ -289,6 +289,58 @@ def get_weekly_metric_counts(days: int = 7) -> dict:
     }
 
 
+def get_prior_period_metrics(days: int = 7) -> dict:
+    """Get metric counts for the period immediately BEFORE the current window."""
+    client = get_supabase()
+    from datetime import datetime, timedelta
+    now = datetime.utcnow()
+    cutoff_current = (now - timedelta(days=days)).isoformat()
+    cutoff_prior = (now - timedelta(days=days * 2)).isoformat()
+
+    quotes = (
+        client.table("analysis_results")
+        .select("source_transcript_id", count="exact")
+        .not_.is_("key_quote", "null")
+        .gte("analyzed_at", cutoff_prior)
+        .lt("analyzed_at", cutoff_current)
+        .execute()
+    )
+    testimonials = (
+        client.table("analysis_results")
+        .select("source_transcript_id", count="exact")
+        .eq("testimonial_candidate", True)
+        .gte("analyzed_at", cutoff_prior)
+        .lt("analyzed_at", cutoff_current)
+        .execute()
+    )
+    content = (
+        client.table("analysis_results")
+        .select("source_transcript_id", count="exact")
+        .eq("content_generation_flag", True)
+        .gte("analyzed_at", cutoff_prior)
+        .lt("analyzed_at", cutoff_current)
+        .execute()
+    )
+    quality_rows = (
+        client.table("analysis_results")
+        .select("quality_score")
+        .not_.is_("quality_score", "null")
+        .gte("analyzed_at", cutoff_prior)
+        .lt("analyzed_at", cutoff_current)
+        .execute()
+        .data
+    )
+    scores = sorted([r["quality_score"] for r in quality_rows])
+    median = scores[len(scores) // 2] if scores else 0
+
+    return {
+        "quotes": quotes.count or 0,
+        "testimonials": testimonials.count or 0,
+        "content_worthy": content.count or 0,
+        "median_quality": median,
+    }
+
+
 def get_top_quotes(days: int = 7, limit: int = 5) -> list[dict]:
     """Top N quotes by quality in the last N days."""
     from datetime import datetime, timedelta

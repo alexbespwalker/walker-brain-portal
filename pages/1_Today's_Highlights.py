@@ -14,7 +14,7 @@ st.caption("Curated content picks for the creative team.")
 from components.cards import metric_card, quote_card
 from components.charts import quality_histogram, volume_trend, case_type_pie
 from utils.queries import (
-    get_weekly_metric_counts, fetch_quotes, get_daily_volume,
+    get_weekly_metric_counts, get_prior_period_metrics, fetch_quotes, get_daily_volume,
 )
 from utils.constants import quality_band
 from utils.database import query_table, get_supabase
@@ -23,18 +23,23 @@ client = get_supabase()
 
 # --- Section 1: Metric cards ---
 metrics = get_weekly_metric_counts(days=7)
+prior = get_prior_period_metrics(days=7)
 
 col1, col2, col3, col4 = st.columns(4)
 with col1:
-    metric_card("New Quotes (7d)", metrics["quotes"], color="#1565c0")
+    metric_card("New Quotes (7d)", metrics["quotes"],
+                delta=metrics["quotes"] - prior["quotes"], color="#1565c0")
 with col2:
-    metric_card("Testimonial Candidates (7d)", metrics["testimonials"], color="#388e3c")
+    metric_card("Testimonial Candidates (7d)", metrics["testimonials"],
+                delta=metrics["testimonials"] - prior["testimonials"], color="#388e3c")
 with col3:
-    metric_card("Content-Worthy Calls (7d)", metrics["content_worthy"], color="#7b1fa2")
+    metric_card("Content-Worthy Calls (7d)", metrics["content_worthy"],
+                delta=metrics["content_worthy"] - prior["content_worthy"], color="#7b1fa2")
 with col4:
     median = metrics["median_quality"]
-    _, band_color = quality_band(median)
-    metric_card("Median Quality (7d)", median, color=band_color)
+    band_name, band_color = quality_band(median)
+    metric_card("Median Quality (7d)", f"{median} \u2014 {band_name}",
+                delta=median - prior["median_quality"], color=band_color)
 
 st.markdown("---")
 
@@ -42,7 +47,7 @@ st.markdown("---")
 left, right = st.columns([3, 2])
 
 with left:
-    st.markdown("### Top 5 Quotes This Week")
+    st.markdown("### Top Quotes This Week")
     from datetime import datetime, timedelta
     week_cutoff = (datetime.utcnow() - timedelta(days=7)).isoformat()
     top_quotes = fetch_quotes(min_quality=0, max_quality=100, limit=5, start_date=week_cutoff)
@@ -83,7 +88,7 @@ with right:
                         obj_counts[c] = obj_counts.get(c, 0) + 1
         if obj_counts:
             top_obj = max(obj_counts, key=obj_counts.get)
-            st.markdown(f"**Top objection:** {top_obj} ({obj_counts[top_obj]} calls)")
+            st.markdown(f"**Top objection:** {top_obj.replace('_', ' ').title()} ({obj_counts[top_obj]} calls)")
         else:
             st.caption("No objection data this week.")
     except Exception:
@@ -130,9 +135,11 @@ with right:
             if tt:
                 tt_counts[tt] = tt_counts.get(tt, 0) + 1
         if tt_counts:
+            from utils.constants import TESTIMONIAL_TYPE_LABELS
             st.markdown("**Testimonial candidates (7d):**")
             for tt, count in tt_counts.items():
-                st.caption(f"  {tt}: {count}")
+                tt_label = TESTIMONIAL_TYPE_LABELS.get(tt, tt)
+                st.caption(f"  {tt_label}: {count}")
         else:
             st.caption("No testimonial candidates this week.")
     except Exception:
@@ -171,11 +178,10 @@ with right:
 
 # --- Section 4: Volume & Quality Trend ---
 st.markdown("---")
-st.markdown("### Volume & Quality Trend (7 days)")
-
 chart_left, chart_right = st.columns(2)
 
 with chart_left:
+    st.markdown("**Call Volume (7 days)**")
     daily = get_daily_volume(days=7)
     if not daily.empty:
         fig = volume_trend(daily)
@@ -184,6 +190,7 @@ with chart_left:
         st.caption("No volume data available.")
 
 with chart_right:
+    st.markdown("**Quality Distribution (7 days)**")
     try:
         quality_rows = (
             client.table("analysis_results")

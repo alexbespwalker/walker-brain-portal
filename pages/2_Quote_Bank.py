@@ -22,7 +22,7 @@ with st.sidebar:
     st.header("Filters")
     tones = emotional_tone_filter(key="qb_tone")
     case_types = case_type_filter(key="qb_case")
-    min_q, max_q = quality_range_filter(default_min=50, default_max=100, key="qb_quality")
+    min_q, max_q = quality_range_filter(default_min=0, default_max=100, key="qb_quality")
     languages = language_filter(key="qb_lang")
     start_date, end_date = date_range_filter(key="qb_date")
     test_only = testimonial_toggle(key="qb_testimonial")

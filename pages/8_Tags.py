@@ -115,16 +115,24 @@ try:
 
         # Week-over-week trends
         if "freq_this_week" in obj_df.columns and "freq_last_week" in obj_df.columns:
-            st.markdown("**Week-over-week changes:**")
-            for _, row in obj_df.iterrows():
-                this_w = row.get("freq_this_week", 0) or 0
-                last_w = row.get("freq_last_week", 0) or 0
-                delta = this_w - last_w
-                arrow = "+" if delta > 0 else ""
-                st.caption(
-                    f"  {row['obj_category']}: {this_w} this week "
-                    f"({arrow}{delta} vs last week)"
-                )
+            has_baseline = any(
+                (row.get("freq_last_week") or 0) > 0
+                for _, row in obj_df.iterrows()
+            )
+            if has_baseline:
+                st.markdown("**Week-over-week changes:**")
+                for _, row in obj_df.iterrows():
+                    this_w = row.get("freq_this_week", 0) or 0
+                    last_w = row.get("freq_last_week", 0) or 0
+                    delta = this_w - last_w
+                    arrow = "+" if delta > 0 else ""
+                    cat_label = row["obj_category"].replace("_", " ").title() if isinstance(row["obj_category"], str) else row["obj_category"]
+                    st.caption(
+                        f"  {cat_label}: {this_w} this week "
+                        f"({arrow}{delta} vs last week)"
+                    )
+            else:
+                st.info("Baseline week \u2014 prior period not yet available for comparison.")
     else:
         # Fallback: compute from analysis_results directly
         from datetime import datetime, timedelta
@@ -159,11 +167,8 @@ try:
             fig = objection_bar(obj_df)
             st.plotly_chart(fig, use_container_width=True)
 
-            # Top verbatim phrases per category
-            st.markdown("**Top objection categories (7d):**")
-            sorted_objs = sorted(obj_counts.items(), key=lambda x: -x[1])
-            for cat, count in sorted_objs[:8]:
-                st.caption(f"  {cat}: {count} calls")
+            # Top categories (already shown in chart above — skip if chart rendered)
+            pass
         else:
             st.caption("No objection data available this week.")
 

@@ -75,6 +75,12 @@ if df.empty:
 else:
     st.markdown(f"**{len(df)} rows** (page {page + 1})")
 
+    # Warn about zero-quality rows
+    if "quality_score" in df.columns:
+        zero_quality = df[df["quality_score"] == 0]
+        if not zero_quality.empty:
+            st.warning(f"{len(zero_quality)} rows have quality_score = 0 (likely processing errors)")
+
     # Export
     download_csv(df, filename="walker_brain_explorer.csv")
 
@@ -89,6 +95,12 @@ else:
                 else x
             )
         )
+
+    # Format timestamps for readability
+    if "analyzed_at" in display_df.columns:
+        display_df["analyzed_at"] = pd.to_datetime(
+            display_df["analyzed_at"], errors="coerce"
+        ).dt.strftime("%b %d, %Y %I:%M %p")
 
     st.dataframe(
         display_df,

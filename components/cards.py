@@ -2,17 +2,27 @@
 
 import json
 import streamlit as st
-from utils.constants import quality_band, TESTIMONIAL_STATUS_COLORS
+from utils.constants import quality_band, TESTIMONIAL_STATUS_COLORS, TESTIMONIAL_TYPE_LABELS
 
 
 def metric_card(label: str, value, delta=None, color: str | None = None):
     """Render a metric card with optional delta and color."""
     if color:
+        delta_html = ""
+        if delta is not None:
+            arrow = "\u25b2" if delta > 0 else "\u25bc" if delta < 0 else "\u2014"
+            d_color = "#388e3c" if delta > 0 else "#d32f2f" if delta < 0 else "#999"
+            sign = "+" if delta > 0 else ""
+            delta_html = (
+                f'<div style="font-size:0.8em; color:{d_color}; margin-top:2px;">'
+                f"{arrow} {sign}{delta} vs prior week</div>"
+            )
         st.markdown(
             f'<div style="background:{color}15; border-left:4px solid {color}; '
             f'padding:12px 16px; border-radius:4px; margin-bottom:8px;">'
             f'<div style="font-size:0.85em; color:#666;">{label}</div>'
             f'<div style="font-size:1.8em; font-weight:700; color:{color};">{value}</div>'
+            f"{delta_html}"
             f"</div>",
             unsafe_allow_html=True,
         )
@@ -47,18 +57,19 @@ def quote_card(row: dict, show_copy: bool = True):
     with st.container(border=True):
         st.markdown(f'*"{quote}"*')
         cols = st.columns([2, 2, 1, 1])
-        cols[0].caption(f"{case_type}")
-        cols[1].caption(f"{tone}")
+        cols[0].caption(f"Case: {case_type}")
+        cols[1].caption(f"Tone: {tone}")
         cols[2].caption(
-            f'<span style="color:{band_color}; font-weight:600;">{quality}</span>',
+            f'<span style="color:{band_color}; font-weight:600;">Quality: {quality}</span>',
             unsafe_allow_html=True,
         )
-        cols[3].caption(lang_short)
+        cols[3].caption(f"Lang: {lang_short}")
 
         if tag_str:
             st.caption(f"Tags: {tag_str}")
         if is_testimonial and testimonial_type:
-            st.caption(f"Testimonial candidate: {testimonial_type}")
+            type_label = TESTIMONIAL_TYPE_LABELS.get(testimonial_type, testimonial_type)
+            st.caption(f"Testimonial candidate: {type_label}")
         st.caption(date)
 
         if show_copy:
@@ -95,10 +106,10 @@ def call_card(row: dict):
         cols = st.columns([2, 1, 2, 1])
         cols[0].markdown(f"**{case_type}**")
         cols[1].markdown(
-            f'<span style="color:{band_color}; font-weight:700;">{quality}</span>',
+            f'<span style="color:{band_color}; font-weight:700;">Quality: {quality}</span>',
             unsafe_allow_html=True,
         )
-        cols[2].caption(tone)
+        cols[2].caption(f"Tone: {tone}")
         cols[3].caption(date)
 
         if summary:
@@ -122,11 +133,7 @@ def testimonial_card(row: dict, next_status: str | None = None):
     _, band_color = quality_band(quality)
     status_color = TESTIMONIAL_STATUS_COLORS.get(status, "#9e9e9e")
 
-    type_icon = {
-        "not_suitable": "Not Suitable",
-        "high_value_long_form": "Long-form",
-        "quantity_short_form": "Short-form",
-    }.get(t_type, t_type)
+    type_icon = TESTIMONIAL_TYPE_LABELS.get(t_type, t_type)
 
     with st.container(border=True):
         st.markdown(f"**{type_icon}**")
@@ -200,7 +207,17 @@ def call_detail_panel(row: dict):
     ]):
         val = row.get(field)
         if val is not None:
-            agent_cols[i].progress(min(val / 10, 1.0), text=f"{label}: {val}/10")
+            if val < 5:
+                score_color = "#d32f2f"
+            elif val < 8:
+                score_color = "#f57c00"
+            else:
+                score_color = "#388e3c"
+            agent_cols[i].progress(min(val / 10, 1.0))
+            agent_cols[i].caption(
+                f'<span style="color:{score_color}; font-weight:600;">{label}: {val}/10</span>',
+                unsafe_allow_html=True,
+            )
         else:
             agent_cols[i].caption(f"{label}: —")
 
@@ -224,7 +241,7 @@ def call_detail_panel(row: dict):
         "drop_off_reason", "agent_intervention_that_worked", "moment_that_closed",
     ]
     has_10a = any(row.get(f) is not None for f in obj_fields)
-    st.markdown("##### Objection Taxonomy (WF 10A)")
+    st.markdown("##### Objection Taxonomy")
     if has_10a:
         for f in obj_fields:
             _render_field(f.replace("_", " ").title(), row.get(f),
@@ -233,7 +250,7 @@ def call_detail_panel(row: dict):
         st.caption("*(not applicable — no objections raised)*")
 
     # Language & Culture (10B)
-    st.markdown("##### Language & Culture (WF 10B)")
+    st.markdown("##### Language & Culture")
     for f in ["reading_level_estimate", "communication_style", "spanglish_detected",
               "colloquialisms", "cultural_markers", "family_references",
               "verbatim_customer_language"]:
@@ -250,7 +267,7 @@ def call_detail_panel(row: dict):
         "attorney_rejection_reason",
     ]
     has_10c = any(row.get(f) is not None for f in cx_fields)
-    st.markdown("##### CX Intelligence (WF 10C)")
+    st.markdown("##### CX Intelligence")
     if has_10c:
         for f in cx_fields:
             _render_field(f.replace("_", " ").title(), row.get(f),
@@ -259,7 +276,7 @@ def call_detail_panel(row: dict):
         st.caption("*(not applicable — no attorney leg)*")
 
     # Content Mining (10D)
-    st.markdown("##### Content Mining (WF 10D)")
+    st.markdown("##### Content Mining")
     for f in ["common_questions_asked", "misunderstandings",
               "education_calming_moment", "process_confusion_points",
               "other_brands_mentioned", "competitive_comparison",
@@ -275,12 +292,12 @@ def call_detail_panel(row: dict):
         )
 
     # Metadata
-    st.markdown("##### Metadata")
-    meta_cols = st.columns(3)
-    meta_cols[0].caption(f"Prompt: {row.get('prompt_version_used', '—')}")
-    meta_cols[1].caption(f"Confidence: {row.get('confidence_score', '—')}")
-    meta_cols[2].caption(f"Validation: {'Passed' if row.get('validation_passed') else 'Failed' if row.get('validation_passed') is False else '—'}")
-    meta_cols2 = st.columns(3)
-    meta_cols2[0].caption(f"Cost: ${row.get('api_cost', 0) or 0:.4f}")
-    meta_cols2[1].caption(f"Tokens in: {row.get('input_tokens', '—')}")
-    meta_cols2[2].caption(f"Tokens out: {row.get('output_tokens', '—')}")
+    with st.expander("Developer Info", expanded=False):
+        meta_cols = st.columns(3)
+        meta_cols[0].caption(f"Prompt: {row.get('prompt_version_used', '—')}")
+        meta_cols[1].caption(f"Confidence: {row.get('confidence_score', '—')}")
+        meta_cols[2].caption(f"Validation: {'Passed' if row.get('validation_passed') else 'Failed' if row.get('validation_passed') is False else '—'}")
+        meta_cols2 = st.columns(3)
+        meta_cols2[0].caption(f"Cost: ${row.get('api_cost', 0) or 0:.4f}")
+        meta_cols2[1].caption(f"Tokens in: {row.get('input_tokens', '—')}")
+        meta_cols2[2].caption(f"Tokens out: {row.get('output_tokens', '—')}")

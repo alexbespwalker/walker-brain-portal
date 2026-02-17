@@ -72,7 +72,7 @@ else:
         sid = row.get("source_transcript_id", "")
         call_card(row)
 
-        with st.expander(f"Details: {sid[:12]}..."):
+        with st.expander(f"Full Analysis \u2014 {row.get('case_type', '')} ({row.get('analyzed_at', '')[:10]})"):
             detail = get_call_detail(sid)
             if detail:
                 # Full summary

@@ -74,23 +74,23 @@ COLUMN_GROUPS = {
         "documentation_quality", "estimated_case_value_low",
         "estimated_case_value_high",
     ],
-    "Objection Taxonomy (10A)": [
+    "Objection Taxonomy": [
         "objection_categories", "mid_call_dropout_moment",
         "conversion_driver", "drop_off_reason",
         "agent_intervention_that_worked", "moment_that_closed",
     ],
-    "Language & Culture (10B)": [
+    "Language & Culture": [
         "reading_level_estimate", "communication_style",
         "spanglish_detected", "colloquialisms", "cultural_markers",
         "family_references", "verbatim_customer_language",
     ],
-    "CX Intelligence (10C)": [
+    "CX Intelligence": [
         "questions_repeated_by_attorney", "attorney_used_prior_info",
         "handoff_wait_time_mentioned", "attorney_sentiment",
         "attorney_rejection_reason", "testimonial_candidate",
         "testimonial_type", "review_request_eligible",
     ],
-    "Content Mining (10D)": [
+    "Content Mining": [
         "common_questions_asked", "misunderstandings",
         "education_calming_moment", "process_confusion_points",
         "other_brands_mentioned", "competitive_comparison",
@@ -105,6 +105,13 @@ COLUMN_GROUPS = {
         "prompt_version_used", "confidence_score", "validation_passed",
         "api_cost", "input_tokens", "output_tokens", "analysis_type",
     ],
+}
+
+
+TESTIMONIAL_TYPE_LABELS = {
+    "not_suitable": "Not Suitable",
+    "high_value_long_form": "High Value \u2014 Long Form",
+    "quantity_short_form": "Short Form",
 }
 
 

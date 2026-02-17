@@ -10,13 +10,21 @@ if not check_password():
 st.title("System Health")
 st.caption("Engineering metrics, model health, and cost tracking.")
 
-if not check_admin():
-    st.warning("This page requires admin access.")
-    st.stop()
-
 from utils.queries import (
     get_system_status, get_cost_tracking, get_drift_alerts, get_prompt_library,
 )
+
+# Quick status for all users (before admin check)
+_quick_status = get_system_status()
+if _quick_status and _quick_status.get("system_active"):
+    st.success("System operational")
+else:
+    st.error("System paused")
+
+if not check_admin():
+    st.warning("Full dashboard requires admin access.")
+    st.stop()
+
 from utils.database import get_supabase, query_table, query_df
 from components.charts import (
     cost_trend, quality_violin, quality_histogram, scatter_calibration,
