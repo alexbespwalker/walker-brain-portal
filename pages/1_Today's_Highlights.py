@@ -4,9 +4,12 @@ import json
 import streamlit as st
 import pandas as pd
 from utils.auth import check_password
+from utils.theme import inject_theme, styled_divider, styled_header, COLORS
 
 if not check_password():
     st.stop()
+
+inject_theme()
 
 st.title("Today's Highlights")
 st.caption("Curated content picks for the creative team.")
@@ -22,32 +25,33 @@ from utils.database import query_table, get_supabase
 client = get_supabase()
 
 # --- Section 1: Metric cards ---
-metrics = get_weekly_metric_counts(days=7)
-prior = get_prior_period_metrics(days=7)
+with st.spinner("Loading metrics..."):
+    metrics = get_weekly_metric_counts(days=7)
+    prior = get_prior_period_metrics(days=7)
 
 col1, col2, col3, col4 = st.columns(4)
 with col1:
     metric_card("New Quotes (7d)", metrics["quotes"],
-                delta=metrics["quotes"] - prior["quotes"], color="#1565c0")
+                delta=metrics["quotes"] - prior["quotes"], color=COLORS["primary"])
 with col2:
     metric_card("Testimonial Candidates (7d)", metrics["testimonials"],
-                delta=metrics["testimonials"] - prior["testimonials"], color="#388e3c")
+                delta=metrics["testimonials"] - prior["testimonials"], color=COLORS["success"])
 with col3:
     metric_card("Content-Worthy Calls (7d)", metrics["content_worthy"],
-                delta=metrics["content_worthy"] - prior["content_worthy"], color="#7b1fa2")
+                delta=metrics["content_worthy"] - prior["content_worthy"], color=COLORS["secondary"])
 with col4:
     median = metrics["median_quality"]
     band_name, band_color = quality_band(median)
     metric_card("Median Quality (7d)", f"{median} \u2014 {band_name}",
                 delta=median - prior["median_quality"], color=band_color)
 
-st.markdown("---")
+styled_divider()
 
 # --- Section 2 & 3: Top quotes + Trending ---
 left, right = st.columns([3, 2])
 
 with left:
-    st.markdown("### Top Quotes This Week")
+    styled_header("Top Quotes This Week")
     from datetime import datetime, timedelta
     week_cutoff = (datetime.utcnow() - timedelta(days=7)).isoformat()
     top_quotes = fetch_quotes(min_quality=0, max_quality=100, limit=5, start_date=week_cutoff)
@@ -58,7 +62,7 @@ with left:
         st.info("No quotes available yet.")
 
 with right:
-    st.markdown("### Trending This Week")
+    styled_header("Trending This Week")
 
     # Top objection category (from analysis_results.objection_categories)
     try:
@@ -177,11 +181,11 @@ with right:
 
 
 # --- Section 4: Volume & Quality Trend ---
-st.markdown("---")
+styled_divider()
 chart_left, chart_right = st.columns(2)
 
 with chart_left:
-    st.markdown("**Call Volume (7 days)**")
+    styled_header("Call Volume", subtitle="Last 7 days")
     daily = get_daily_volume(days=7)
     if not daily.empty:
         fig = volume_trend(daily)
@@ -190,7 +194,7 @@ with chart_left:
         st.caption("No volume data available.")
 
 with chart_right:
-    st.markdown("**Quality Distribution (7 days)**")
+    styled_header("Quality Distribution", subtitle="Last 7 days")
     try:
         quality_rows = (
             client.table("analysis_results")
@@ -210,8 +214,8 @@ with chart_right:
         st.caption("Quality distribution unavailable.")
 
 # --- Section 5: Case Type Distribution ---
-st.markdown("---")
-st.markdown("### Case Type Distribution (7 days)")
+styled_divider()
+styled_header("Case Type Distribution", subtitle="Last 7 days")
 
 try:
     case_type_rows = (

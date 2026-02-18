@@ -1,23 +1,37 @@
 """Simple password authentication for Walker Brain Portal."""
 
 import streamlit as st
+from utils.theme import inject_theme, COLORS, TYPOGRAPHY, SPACING, SHADOWS, BORDERS
 
 
 def check_password() -> bool:
-    """Show password gate and return True if authenticated."""
+    """Show branded password gate and return True if authenticated."""
     if st.session_state.get("authenticated"):
         return True
 
-    st.title("Walker Brain Portal")
-    st.markdown("Enter the portal password to continue.")
+    inject_theme()
 
-    password = st.text_input("Password", type="password", key="password_input")
-    if st.button("Log in", type="primary"):
-        if password == st.secrets["auth"]["password"]:
-            st.session_state["authenticated"] = True
-            st.rerun()
-        else:
-            st.error("Incorrect password.")
+    st.markdown(
+        f"""
+        <div class="wb-login-card">
+            <div style="font-size: 2rem; margin-bottom: {SPACING["sm"]};">&#129504;</div>
+            <div class="wb-login-title">Walker Brain</div>
+            <div class="wb-login-subtitle">Enter the portal password to continue.</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Center the form inputs with columns
+    _, center, _ = st.columns([1, 2, 1])
+    with center:
+        password = st.text_input("Password", type="password", key="password_input", label_visibility="collapsed", placeholder="Password")
+        if st.button("Log in", type="primary", use_container_width=True):
+            if password == st.secrets["auth"]["password"]:
+                st.session_state["authenticated"] = True
+                st.rerun()
+            else:
+                st.error("Incorrect password.")
     return False
 
 

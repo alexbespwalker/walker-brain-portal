@@ -4,9 +4,12 @@ import json
 import streamlit as st
 import pandas as pd
 from utils.auth import check_password
+from utils.theme import inject_theme, styled_divider, styled_header
 
 if not check_password():
     st.stop()
+
+inject_theme()
 
 st.title("Tags & Objection Insights")
 st.caption("Browse the tag taxonomy and explore objection patterns.")
@@ -14,54 +17,12 @@ st.caption("Browse the tag taxonomy and explore objection patterns.")
 from utils.database import get_supabase, query_table
 from components.charts import objection_bar
 
-# --- Section 1: Tag Browser ---
-st.markdown("### Tag Browser")
-
-try:
-    # Try to load from master_taxonomy if it exists
-    taxonomy = query_table("master_taxonomy", order="tag_name")
-    if taxonomy:
-        # Build lookup of tag_id -> tag_name for parent resolution
-        id_to_name: dict[int, str] = {}
-        for t in taxonomy:
-            tid = t.get("tag_id")
-            if tid is not None:
-                id_to_name[tid] = t.get("tag_name", f"Tag {tid}")
-
-        # Group by parent_tag_id (integer FK)
-        parents: dict[int, list] = {}
-        orphans = []
-        for t in taxonomy:
-            parent_id = t.get("parent_tag_id")
-            if parent_id is not None:
-                parents.setdefault(parent_id, []).append(t)
-            else:
-                orphans.append(t)
-
-        for parent_id, children in sorted(parents.items(), key=lambda x: id_to_name.get(x[0], "")):
-            parent_name = id_to_name.get(parent_id, f"Category {parent_id}")
-            with st.expander(f"{parent_name} ({len(children)} tags)"):
-                for child in children:
-                    tag = child.get("tag_name", "")
-                    count = child.get("usage_count", 0)
-                    st.caption(f"  {tag} — {count} uses")
-
-        if orphans:
-            st.markdown("**Top-level tags:**")
-            for t in orphans:
-                tag = t.get("tag_name", "")
-                count = t.get("usage_count", 0)
-                st.caption(f"  {tag} — {count} uses")
-    else:
-        st.info("No taxonomy data available yet. Tags will appear when WF 30 runs.")
-except Exception:
-    # master_taxonomy may not exist yet — show tags from analysis_results
-    st.caption("Loading tags from analyzed calls...")
-
+def _show_fallback_tags():
+    """Mine tags from analysis_results when master_taxonomy is empty/missing."""
     try:
-        client = get_supabase()
+        _client = get_supabase()
         rows = (
-            client.table("analysis_results")
+            _client.table("analysis_results")
             .select("suggested_tags")
             .not_.is_("suggested_tags", "null")
             .limit(1000)
@@ -86,17 +47,59 @@ except Exception:
             for tag, count in sorted_tags[:50]:
                 st.caption(f"{tag}: {count} calls")
         else:
-            st.caption("No tags found.")
+            st.info("No tags found in analyzed calls yet.")
     except Exception:
         st.caption("Unable to load tag data.")
 
 
-# --- Section 2: Objection Category Insights ---
-st.markdown("---")
-st.markdown("### Objection Category Insights")
+# --- Section 1: Tag Browser ---
+styled_header("Tag Browser")
 
 try:
-    # Try the v_objection_frequencies view first
+    taxonomy = query_table("master_taxonomy", order="tag_name")
+    if taxonomy:
+        id_to_name: dict[int, str] = {}
+        for t in taxonomy:
+            tid = t.get("tag_id")
+            if tid is not None:
+                id_to_name[tid] = t.get("tag_name", f"Tag {tid}")
+
+        parents: dict[int, list] = {}
+        orphans = []
+        for t in taxonomy:
+            parent_id = t.get("parent_tag_id")
+            if parent_id is not None:
+                parents.setdefault(parent_id, []).append(t)
+            else:
+                orphans.append(t)
+
+        for parent_id, children in sorted(parents.items(), key=lambda x: id_to_name.get(x[0], "")):
+            parent_name = id_to_name.get(parent_id, f"Category {parent_id}")
+            with st.expander(f"{parent_name} ({len(children)} tags)"):
+                for child in children:
+                    tag = child.get("tag_name", "")
+                    count = child.get("usage_count", 0)
+                    st.caption(f"  {tag} \u2014 {count} uses")
+
+        if orphans:
+            st.markdown("**Top-level tags:**")
+            for t in orphans:
+                tag = t.get("tag_name", "")
+                count = t.get("usage_count", 0)
+                st.caption(f"  {tag} \u2014 {count} uses")
+    else:
+        st.caption("Loading tags from analyzed calls...")
+        _show_fallback_tags()
+except Exception:
+    st.caption("Loading tags from analyzed calls...")
+    _show_fallback_tags()
+
+
+# --- Section 2: Objection Category Insights ---
+styled_divider()
+styled_header("Objection Category Insights")
+
+try:
     client = get_supabase()
     try:
         obj_data = (
@@ -113,12 +116,10 @@ try:
         fig = objection_bar(obj_df)
         st.plotly_chart(fig, use_container_width=True)
 
-        # Week-over-week trends
         if "freq_this_week" in obj_df.columns and "freq_last_week" in obj_df.columns:
-            has_baseline = any(
-                (row.get("freq_last_week") or 0) > 0
-                for _, row in obj_df.iterrows()
-            )
+            total_this = sum((row.get("freq_this_week") or 0) for _, row in obj_df.iterrows())
+            total_last = sum((row.get("freq_last_week") or 0) for _, row in obj_df.iterrows())
+            has_baseline = total_last > 0 and total_last >= total_this * 0.10
             if has_baseline:
                 st.markdown("**Week-over-week changes:**")
                 for _, row in obj_df.iterrows():
@@ -134,7 +135,6 @@ try:
             else:
                 st.info("Baseline week \u2014 prior period not yet available for comparison.")
     else:
-        # Fallback: compute from analysis_results directly
         from datetime import datetime, timedelta
         cutoff_7d = (datetime.utcnow() - timedelta(days=7)).isoformat()
 
@@ -166,11 +166,8 @@ try:
             )
             fig = objection_bar(obj_df)
             st.plotly_chart(fig, use_container_width=True)
-
-            # Top categories (already shown in chart above — skip if chart rendered)
-            pass
         else:
-            st.caption("No objection data available this week.")
+            st.info("No objection data available this week.")
 
-except Exception as e:
-    st.caption(f"Unable to load objection data.")
+except Exception:
+    st.caption("Unable to load objection data.")

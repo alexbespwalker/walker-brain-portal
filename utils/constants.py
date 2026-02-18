@@ -112,7 +112,15 @@ TESTIMONIAL_TYPE_LABELS = {
     "not_suitable": "Not Suitable",
     "high_value_long_form": "High Value \u2014 Long Form",
     "quantity_short_form": "Short Form",
+    "video_candidate": "Video Candidate",
 }
+
+
+def clean_language(val: str | None) -> str:
+    """Strip wrapping single-quotes and whitespace from language values."""
+    if not val:
+        return ""
+    return val.strip("'").strip()
 
 
 def quality_band(score: int | float | None) -> tuple[str, str]:

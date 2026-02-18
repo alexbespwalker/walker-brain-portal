@@ -29,7 +29,16 @@ def get_outcomes() -> list[str]:
 
 @st.cache_data(ttl=3600)
 def get_languages() -> list[str]:
-    return get_distinct_values("analysis_results", "original_language")
+    from utils.constants import clean_language
+    raw = get_distinct_values("analysis_results", "original_language")
+    seen = set()
+    cleaned = []
+    for v in raw:
+        c = clean_language(v)
+        if c and c not in seen:
+            seen.add(c)
+            cleaned.append(c)
+    return cleaned
 
 
 # ---------------------------------------------------------------------------
@@ -61,6 +70,7 @@ def fetch_quotes(
         client.table("analysis_results")
         .select(QUOTE_COLUMNS)
         .not_.is_("key_quote", "null")
+        .neq("key_quote", "")
         .gte("quality_score", min_quality)
         .lte("quality_score", max_quality)
         .order("quality_score", desc=True)
@@ -161,7 +171,7 @@ def search_calls(
     if end_date:
         q = q.lte("analyzed_at", end_date)
     if has_quote:
-        q = q.not_.is_("key_quote", "null")
+        q = q.not_.is_("key_quote", "null").neq("key_quote", "")
     if content_worthy:
         q = q.eq("content_generation_flag", True)
     return q.execute().data
@@ -253,6 +263,7 @@ def get_weekly_metric_counts(days: int = 7) -> dict:
         client.table("analysis_results")
         .select("source_transcript_id", count="exact")
         .not_.is_("key_quote", "null")
+        .neq("key_quote", "")
         .gte("analyzed_at", cutoff)
         .execute()
     )

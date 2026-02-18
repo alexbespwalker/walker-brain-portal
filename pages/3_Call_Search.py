@@ -4,9 +4,12 @@ import json
 import streamlit as st
 import pandas as pd
 from utils.auth import check_password
+from utils.theme import inject_theme, styled_header
 
 if not check_password():
     st.stop()
+
+inject_theme()
 
 st.title("Call Search")
 st.caption("Filter, browse, and deep-dive into analyzed calls.")
@@ -37,20 +40,21 @@ with st.sidebar:
 offset, page = paginated_controls(total_label="calls", key="cs_page")
 
 # --- Fetch results ---
-results = search_calls(
-    text_search=text,
-    case_types=case_types,
-    min_quality=min_q,
-    max_quality=max_q,
-    start_date=start_date,
-    end_date=end_date,
-    languages=languages,
-    tones=tones,
-    has_quote=has_quote,
-    content_worthy=content_worthy,
-    limit=50,
-    offset=offset,
-)
+with st.spinner("Searching calls..."):
+    results = search_calls(
+        text_search=text,
+        case_types=case_types,
+        min_quality=min_q,
+        max_quality=max_q,
+        start_date=start_date,
+        end_date=end_date,
+        languages=languages,
+        tones=tones,
+        has_quote=has_quote,
+        content_worthy=content_worthy,
+        limit=50,
+        offset=offset,
+    )
 
 if not results:
     st.info("No calls found matching your filters.")
@@ -59,7 +63,6 @@ else:
 
     # Export button
     df_export = pd.DataFrame(results)
-    # Drop large fields from export
     for col in ["suggested_tags"]:
         if col in df_export.columns:
             df_export[col] = df_export[col].apply(
@@ -75,16 +78,13 @@ else:
         with st.expander(f"Full Analysis \u2014 {row.get('case_type', '')} ({row.get('analyzed_at', '')[:10]})"):
             detail = get_call_detail(sid)
             if detail:
-                # Full summary
-                st.markdown("##### Summary")
-                st.markdown(detail.get("summary", "—"))
+                styled_header("Summary")
+                st.markdown(detail.get("summary", "\u2014"))
 
-                # Key quote with copy
                 if detail.get("key_quote"):
-                    st.markdown("##### Key Quote")
+                    styled_header("Key Quote")
                     st.code(detail["key_quote"], language=None)
 
-                # Detail panel (all modules)
                 call_detail_panel(detail)
 
                 # Transcript (lazy-loaded)

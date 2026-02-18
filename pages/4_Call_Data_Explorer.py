@@ -4,9 +4,12 @@ import json
 import streamlit as st
 import pandas as pd
 from utils.auth import check_password
+from utils.theme import inject_theme, styled_divider, styled_header
 
 if not check_password():
     st.stop()
+
+inject_theme()
 
 st.title("Call Data Explorer")
 st.caption("Explore all extracted fields. Toggle column groups to customize your view.")
@@ -58,17 +61,18 @@ if not columns:
 offset, page = paginated_controls(total_label="rows", key="ex_page")
 
 # --- Fetch data ---
-df = fetch_explorer_data(
-    columns=columns,
-    case_types=case_types,
-    min_quality=min_q,
-    max_quality=max_q,
-    start_date=start_date,
-    end_date=end_date,
-    languages=languages,
-    limit=50,
-    offset=offset,
-)
+with st.spinner("Loading data..."):
+    df = fetch_explorer_data(
+        columns=columns,
+        case_types=case_types,
+        min_quality=min_q,
+        max_quality=max_q,
+        start_date=start_date,
+        end_date=end_date,
+        languages=languages,
+        limit=50,
+        offset=offset,
+    )
 
 if df.empty:
     st.info("No data found matching your filters.")
@@ -79,7 +83,7 @@ else:
     if "quality_score" in df.columns:
         zero_quality = df[df["quality_score"] == 0]
         if not zero_quality.empty:
-            st.warning(f"{len(zero_quality)} rows have quality_score = 0 (likely processing errors)")
+            st.info(f"{len(zero_quality)} rows have quality_score = 0 (voicemails / dropped calls)")
 
     # Export
     download_csv(df, filename="walker_brain_explorer.csv")
@@ -87,7 +91,6 @@ else:
     # Render table with NULL handling
     display_df = df.copy()
     for col in display_df.columns:
-        # Convert JSONB columns to readable strings
         display_df[col] = display_df[col].apply(
             lambda x: (
                 json.dumps(x, indent=1) if isinstance(x, (list, dict))
@@ -109,9 +112,8 @@ else:
     )
 
     # Expandable row detail
-    st.markdown("---")
-    st.markdown("##### Row Detail")
-    st.caption("Select a call ID to view all fields.")
+    styled_divider()
+    styled_header("Row Detail", subtitle="Select a call ID to view all fields.")
 
     if "source_transcript_id" in df.columns:
         selected_id = st.selectbox(

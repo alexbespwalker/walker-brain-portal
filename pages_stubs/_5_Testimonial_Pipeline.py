@@ -2,9 +2,12 @@
 
 import streamlit as st
 from utils.auth import check_password
+from utils.theme import inject_theme, COLORS, SPACING, BORDERS, TYPOGRAPHY
 
 if not check_password():
     st.stop()
+
+inject_theme()
 
 st.title("Testimonial Pipeline")
 st.caption("Track testimonial candidates from flagged through published.")
@@ -61,12 +64,11 @@ for i, status in enumerate(KANBAN_STATUSES):
     color = TESTIMONIAL_STATUS_COLORS.get(status, "#9e9e9e")
     with cols[i]:
         st.markdown(
-            f'<div style="background:{color}20; padding:8px; border-radius:4px; '
-            f'text-align:center; margin-bottom:8px;">'
-            f'<strong>{status.title()}</strong> ({len(items)})</div>',
+            f'<div class="wb-kanban-header" style="background:{color}20; color:{color};">'
+            f'{status.title()} ({len(items)})</div>',
             unsafe_allow_html=True,
         )
-        for item in items[:20]:  # Show max 20 per lane
+        for item in items[:20]:
             sid = item.get("source_transcript_id", "")
             next_s = NEXT_STATUS.get(status)
 

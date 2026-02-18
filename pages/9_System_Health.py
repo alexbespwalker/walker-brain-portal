@@ -3,9 +3,12 @@
 import streamlit as st
 import pandas as pd
 from utils.auth import check_password, check_admin
+from utils.theme import inject_theme, styled_divider, styled_header, COLORS
 
 if not check_password():
     st.stop()
+
+inject_theme()
 
 st.title("System Health")
 st.caption("Engineering metrics, model health, and cost tracking.")
@@ -17,9 +20,17 @@ from utils.queries import (
 # Quick status for all users (before admin check)
 _quick_status = get_system_status()
 if _quick_status and _quick_status.get("system_active"):
-    st.success("System operational")
+    st.markdown(
+        f'<div class="wb-status-pill" style="background:#e8f5e9; color:#2e7d32;">'
+        f'&#9679; System operational</div>',
+        unsafe_allow_html=True,
+    )
 else:
-    st.error("System paused")
+    st.markdown(
+        f'<div class="wb-status-pill" style="background:#ffebee; color:#c62828;">'
+        f'&#9679; System paused</div>',
+        unsafe_allow_html=True,
+    )
 
 if not check_admin():
     st.warning("Full dashboard requires admin access.")
@@ -33,7 +44,7 @@ from components.charts import (
 client = get_supabase()
 
 # --- System Status ---
-st.markdown("### System Status")
+styled_header("System Status")
 status = get_system_status()
 if status:
     is_active = status.get("system_active", False)
@@ -49,10 +60,10 @@ if status:
 else:
     st.caption("System status unavailable.")
 
-st.markdown("---")
+styled_divider()
 
 # --- Cost Tracking ---
-st.markdown("### Cost Tracking (30 days)")
+styled_header("Cost Tracking", subtitle="Last 30 days")
 cost_df = get_cost_tracking(days=30)
 if not cost_df.empty and "date" in cost_df.columns and "total_cost" in cost_df.columns:
     fig = cost_trend(cost_df)
@@ -69,10 +80,10 @@ if not cost_df.empty and "date" in cost_df.columns and "total_cost" in cost_df.c
 else:
     st.caption("No cost data available.")
 
-st.markdown("---")
+styled_divider()
 
 # --- Quality Analytics ---
-st.markdown("### Quality Distribution")
+styled_header("Quality Distribution")
 try:
     q_rows = (
         client.table("analysis_results")
@@ -105,26 +116,40 @@ try:
 except Exception:
     st.caption("Unable to load quality data.")
 
-st.markdown("---")
+styled_divider()
 
 # --- Drift Alerts ---
-st.markdown("### Drift Alerts")
+styled_header("Drift Alerts")
 alerts = get_drift_alerts(limit=10)
 if alerts:
     for alert in alerts:
         created = str(alert.get("created_at", ""))[:10]
         max_dev = alert.get("max_deviation", 0)
         report = alert.get("drift_report", "")
-        severity = "High" if max_dev and max_dev > 3 else "Medium" if max_dev and max_dev > 2 else "Low"
-        with st.expander(f"{created} — {severity} ({max_dev:.1f}σ)" if max_dev else f"{created}"):
+        if max_dev and max_dev > 3:
+            severity = "High"
+            badge_class = "wb-badge wb-badge-error"
+        elif max_dev and max_dev > 2:
+            severity = "Medium"
+            badge_class = "wb-badge wb-badge-warning"
+        else:
+            severity = "Low"
+            badge_class = "wb-badge wb-badge-info"
+
+        label = f"{created} \u2014 {severity} ({max_dev:.1f}\u03c3)" if max_dev else created
+        with st.expander(label):
+            st.markdown(
+                f'<span class="{badge_class}">{severity}</span>',
+                unsafe_allow_html=True,
+            )
             st.markdown(report if report else "No report available.")
 else:
     st.success("No drift alerts.")
 
-st.markdown("---")
+styled_divider()
 
 # --- Model Calibration (from arbitrated_labels) ---
-st.markdown("### Model Calibration (Grok vs Consensus)")
+styled_header("Model Calibration", subtitle="Grok vs Consensus")
 try:
     gold = query_table("arbitrated_labels", select="production_quality_score, consensus_quality_score")
     if gold and len(gold) > 5:
@@ -145,10 +170,10 @@ try:
 except Exception:
     st.caption("Calibration data table not available.")
 
-st.markdown("---")
+styled_divider()
 
 # --- Pipeline Throughput ---
-st.markdown("### Pipeline Throughput")
+styled_header("Pipeline Throughput", subtitle="Last 7 days")
 try:
     from datetime import datetime, timedelta
     cutoff = (datetime.utcnow() - timedelta(days=7)).isoformat()
@@ -170,10 +195,10 @@ try:
 except Exception:
     st.caption("Throughput data unavailable.")
 
-st.markdown("---")
+styled_divider()
 
 # --- Active Prompts ---
-st.markdown("### Active Prompts")
+styled_header("Active Prompts")
 prompts = get_prompt_library()
 if prompts:
     active = [p for p in prompts if p.get("is_active")]

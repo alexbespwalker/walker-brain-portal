@@ -2,9 +2,12 @@
 
 import streamlit as st
 from utils.auth import check_password
+from utils.theme import inject_theme
 
 if not check_password():
     st.stop()
+
+inject_theme()
 
 st.title("Quote Bank")
 st.caption("Find quotes for social posts, ad copy, and landing pages.")
@@ -31,18 +34,19 @@ with st.sidebar:
 offset, page = paginated_controls(total_label="quotes", key="qb_page")
 
 # --- Fetch quotes ---
-quotes = fetch_quotes(
-    min_quality=min_q,
-    max_quality=max_q,
-    case_types=case_types,
-    tones=tones,
-    languages=languages,
-    testimonial_only=test_only,
-    start_date=str(start_date) if start_date else None,
-    end_date=str(end_date) if end_date else None,
-    limit=50,
-    offset=offset,
-)
+with st.spinner("Loading quotes..."):
+    quotes = fetch_quotes(
+        min_quality=min_q,
+        max_quality=max_q,
+        case_types=case_types,
+        tones=tones,
+        languages=languages,
+        testimonial_only=test_only,
+        start_date=str(start_date) if start_date else None,
+        end_date=str(end_date) if end_date else None,
+        limit=50,
+        offset=offset,
+    )
 
 if not quotes:
     st.info("No quotes found matching your filters. Try widening your search.")

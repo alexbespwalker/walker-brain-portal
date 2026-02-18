@@ -2,13 +2,16 @@
 
 import streamlit as st
 from utils.auth import check_password
+from utils.theme import inject_theme
 
 if not check_password():
     st.stop()
 
+inject_theme()
+
 st.title("Call Clusters")
 st.info(
-    "Coming soon — monthly call pattern discovery will appear here "
+    "Coming soon \u2014 monthly call pattern discovery will appear here "
     "when Workflow 50 is activated."
 )
 

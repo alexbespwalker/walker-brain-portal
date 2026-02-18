@@ -2,13 +2,16 @@
 
 import streamlit as st
 from utils.auth import check_password
+from utils.theme import inject_theme, styled_divider, styled_header
 
 if not check_password():
     st.stop()
 
+inject_theme()
+
 st.title("Case Studies")
 st.info(
-    "Coming soon — AI-generated case studies will appear here "
+    "Coming soon \u2014 AI-generated case studies will appear here "
     "when Workflow 20 is activated."
 )
 
@@ -23,9 +26,8 @@ Use **Quote Bank** to find content-worthy calls in the meantime.
 """)
 
 # Preview: top 10 content-flagged calls as potential case studies
-st.markdown("---")
-st.markdown("### Potential Case Studies (Preview)")
-st.caption("These calls have been flagged as content-worthy by the AI.")
+styled_divider()
+styled_header("Potential Case Studies", subtitle="Calls flagged as content-worthy by the AI")
 
 from utils.database import get_supabase
 
@@ -52,6 +54,6 @@ try:
                 if row.get("key_quote"):
                     st.markdown(f'> *"{row["key_quote"][:200]}"*')
     else:
-        st.caption("No content-worthy calls found yet.")
+        st.info("No content-worthy calls found yet.")
 except Exception:
     st.caption("Unable to load preview data.")

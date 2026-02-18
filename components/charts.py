@@ -4,6 +4,14 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 from utils.constants import QUALITY_BANDS, CASE_TYPE_COLORS
+from utils.theme import PLOTLY_TEMPLATE, COLORS
+
+
+def _apply_template(fig: go.Figure, **overrides) -> go.Figure:
+    """Apply the shared Plotly template with optional per-chart overrides."""
+    layout = {**PLOTLY_TEMPLATE, **overrides}
+    fig.update_layout(**layout)
+    return fig
 
 
 def quality_histogram(df: pd.DataFrame, column: str = "quality_score") -> go.Figure:
@@ -25,22 +33,21 @@ def quality_histogram(df: pd.DataFrame, column: str = "quality_score") -> go.Fig
     fig.add_trace(go.Histogram(
         x=df[column].dropna(),
         nbinsx=20,
-        marker_color="#1565c0",
-        opacity=0.7,
+        marker_color=COLORS["primary"],
+        opacity=0.75,
     ))
 
-    fig.update_layout(
+    return _apply_template(
+        fig,
         xaxis_title="Quality Score",
         yaxis_title="Count",
-        margin=dict(l=40, r=20, t=30, b=40),
         height=300,
         showlegend=False,
     )
-    return fig
 
 
 def case_type_pie(df: pd.DataFrame, column: str = "case_type") -> go.Figure:
-    """Pie chart of case type distribution."""
+    """Donut chart of case type distribution."""
     counts = df[column].value_counts().reset_index()
     counts.columns = ["case_type", "count"]
 
@@ -50,16 +57,17 @@ def case_type_pie(df: pd.DataFrame, column: str = "case_type") -> go.Figure:
         labels=counts["case_type"],
         values=counts["count"],
         marker_colors=colors,
-        hole=0.4,
+        hole=0.45,
         textposition="inside",
         textinfo="label+percent",
+        textfont_size=11,
     ))
-    fig.update_layout(
-        margin=dict(l=20, r=20, t=20, b=20),
+    return _apply_template(
+        fig,
         height=300,
         showlegend=False,
+        margin=dict(l=20, r=20, t=20, b=20),
     )
-    return fig
 
 
 def volume_trend(df: pd.DataFrame) -> go.Figure:
@@ -69,17 +77,18 @@ def volume_trend(df: pd.DataFrame) -> go.Figure:
         x=df["date"],
         y=df["count"],
         mode="lines+markers",
-        line=dict(color="#1565c0", width=2),
-        marker=dict(size=6),
+        line=dict(color=COLORS["primary"], width=2.5),
+        marker=dict(size=7, color=COLORS["primary"]),
+        fill="tozeroy",
+        fillcolor=f"{COLORS['primary']}0a",
         name="Calls",
     ))
-    fig.update_layout(
+    return _apply_template(
+        fig,
         xaxis_title="Date",
         yaxis_title="Calls Processed",
-        margin=dict(l=40, r=20, t=20, b=40),
         height=250,
     )
-    return fig
 
 
 def objection_bar(df: pd.DataFrame) -> go.Figure:
@@ -91,18 +100,28 @@ def objection_bar(df: pd.DataFrame) -> go.Figure:
     df_sorted["obj_category"] = df_sorted["obj_category"].apply(
         lambda x: x.replace("_", " ").title() if isinstance(x, str) else x
     )
+    total = df_sorted["frequency"].sum()
+    if total > 0:
+        df_sorted["pct"] = (df_sorted["frequency"] / total * 100).round(1)
+        df_sorted["label"] = df_sorted.apply(
+            lambda r: f"{r['frequency']} ({r['pct']}%)", axis=1
+        )
+    else:
+        df_sorted["label"] = df_sorted["frequency"].astype(str)
     fig = go.Figure(go.Bar(
         x=df_sorted["frequency"],
         y=df_sorted["obj_category"],
         orientation="h",
-        marker_color="#f57c00",
+        marker_color=COLORS["warning"],
+        text=df_sorted["label"],
+        textposition="outside",
     ))
-    fig.update_layout(
+    return _apply_template(
+        fig,
         xaxis_title="Count",
-        margin=dict(l=150, r=20, t=20, b=40),
         height=max(200, len(df_sorted) * 35),
+        margin=dict(l=150, r=60, t=20, b=40),
     )
-    return fig
 
 
 def cost_trend(df: pd.DataFrame) -> go.Figure:
@@ -112,18 +131,18 @@ def cost_trend(df: pd.DataFrame) -> go.Figure:
         x=df["date"],
         y=df["total_cost"],
         mode="lines+markers",
-        line=dict(color="#388e3c", width=2),
+        line=dict(color=COLORS["success"], width=2.5),
+        marker=dict(size=6, color=COLORS["success"]),
         fill="tozeroy",
-        fillcolor="rgba(56,142,60,0.1)",
+        fillcolor=f"{COLORS['success']}10",
         name="Daily Cost",
     ))
-    fig.update_layout(
+    return _apply_template(
+        fig,
         xaxis_title="Date",
         yaxis_title="Cost ($)",
-        margin=dict(l=40, r=20, t=20, b=40),
         height=250,
     )
-    return fig
 
 
 def quality_violin(df: pd.DataFrame, column: str = "quality_score") -> go.Figure:
@@ -133,15 +152,15 @@ def quality_violin(df: pd.DataFrame, column: str = "quality_score") -> go.Figure
         box_visible=True,
         meanline_visible=True,
         fillcolor="#e3f2fd",
-        line_color="#1565c0",
-        opacity=0.7,
+        line_color=COLORS["primary"],
+        opacity=0.8,
     ))
-    fig.update_layout(
+    return _apply_template(
+        fig,
         yaxis_title="Quality Score",
-        margin=dict(l=40, r=20, t=20, b=20),
         height=300,
+        margin=dict(l=40, r=20, t=20, b=20),
     )
-    return fig
 
 
 def scatter_calibration(
@@ -156,7 +175,7 @@ def scatter_calibration(
     fig.add_trace(go.Scatter(
         x=[0, 100], y=[0, 100],
         mode="lines",
-        line=dict(dash="dash", color="#999"),
+        line=dict(dash="dash", color=COLORS["neutral"][400]),
         showlegend=False,
     ))
 
@@ -164,14 +183,13 @@ def scatter_calibration(
         x=df[x_col],
         y=df[y_col],
         mode="markers",
-        marker=dict(size=8, color="#1565c0"),
+        marker=dict(size=9, color=COLORS["primary"], opacity=0.8),
         name="Calls",
     ))
 
-    fig.update_layout(
+    return _apply_template(
+        fig,
         xaxis_title="Grok Production Score",
         yaxis_title="Consensus Score",
-        margin=dict(l=40, r=20, t=20, b=40),
         height=350,
     )
-    return fig
