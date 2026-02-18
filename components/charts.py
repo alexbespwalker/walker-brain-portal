@@ -125,7 +125,7 @@ def objection_bar(df: pd.DataFrame) -> go.Figure:
     # Filter out null, empty, and "undefined" categories
     df = df[
         df["obj_category"].apply(
-            lambda x: isinstance(x, str) and x.strip() != "" and x.lower() != "undefined"
+            lambda x: isinstance(x, str) and x.strip() != "" and x.lower() not in ("undefined", "none", "null", "n/a")
         )
     ].copy()
     if df.empty:
@@ -151,12 +151,15 @@ def objection_bar(df: pd.DataFrame) -> go.Figure:
         marker_color=bar_colors,
         text=df_sorted["label"],
         textposition="outside",
+        cliponaxis=False,
     ))
     return _apply_template(
         fig,
+        title="",
         xaxis_title="Count",
         height=max(200, len(df_sorted) * 35),
-        margin=dict(l=150, r=60, t=20, b=40),
+        margin=dict(l=150, r=120, t=20, b=40),
+        showlegend=False,
     )
 
 

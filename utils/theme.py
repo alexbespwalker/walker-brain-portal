@@ -29,7 +29,7 @@ COLORS = {
     },
     "background": "#ffffff",
     "surface": "#ffffff",
-    "surface_variant": "#f8f9fa",
+    "surface_variant": "#f0f2f5",
     "text_primary": "#212121",
     "text_secondary": "#616161",
     "text_hint": "#9e9e9e",
@@ -269,18 +269,14 @@ input[data-testid="stTextInput"] {{
     font-size: {TYPOGRAPHY["size"]["xs"]};
     font-weight: {TYPOGRAPHY["weight"]["semibold"]};
     color: {COLORS["text_secondary"]};
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
     margin-bottom: {SPACING["xs"]};
+    white-space: nowrap;
 }}
 .wb-metric-value {{
     font-size: clamp(1.25rem, 2.5vw, 1.75rem);
     font-weight: {TYPOGRAPHY["weight"]["bold"]};
     line-height: {TYPOGRAPHY["line_height"]["tight"]};
     margin-bottom: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }}
 .wb-metric-delta {{
     font-size: {TYPOGRAPHY["size"]["xs"]};
@@ -334,7 +330,7 @@ input[data-testid="stTextInput"] {{
     margin-bottom: {SPACING["xs"]};
 }}
 .wb-nav-desc {{
-    font-size: {TYPOGRAPHY["size"]["xs"]};
+    font-size: {TYPOGRAPHY["size"]["sm"]};
     color: {COLORS["text_secondary"]};
     line-height: {TYPOGRAPHY["line_height"]["normal"]};
 }}
@@ -342,11 +338,11 @@ input[data-testid="stTextInput"] {{
 /* --- Login card --- */
 .wb-login-card {{
     max-width: 400px;
-    margin: 80px auto;
+    margin: 48px auto 0 auto;
     background: {COLORS["surface"]};
     border: 1px solid {COLORS["neutral"][200]};
     border-radius: {BORDERS["radius_lg"]};
-    padding: {SPACING["3xl"]} {SPACING["2xl"]};
+    padding: {SPACING["2xl"]} {SPACING["2xl"]} {SPACING["xl"]};
     box-shadow: {SHADOWS["lg"]};
     text-align: center;
 }}
@@ -413,6 +409,36 @@ div[data-testid="stCodeBlock"] pre {{
     word-wrap: break-word;
     max-height: 200px;
     overflow-y: auto;
+}}
+
+/* --- Disabled button styling (pagination) --- */
+button[data-testid="stBaseButton-secondary"][disabled] {{
+    opacity: 0.35;
+    cursor: not-allowed;
+}}
+
+/* --- Reduce top padding on main content area --- */
+.block-container {{
+    padding-top: 2rem !important;
+}}
+
+/* --- Tab active indicator --- */
+button[data-baseweb="tab"][aria-selected="true"] {{
+    border-bottom: 3px solid {COLORS["primary"]} !important;
+    font-weight: {TYPOGRAPHY["weight"]["semibold"]} !important;
+}}
+
+/* --- Sidebar nav link hover / active --- */
+section[data-testid="stSidebar"] a[data-testid="stSidebarNavLink"] {{
+    border-radius: 6px;
+    transition: background-color 0.15s ease;
+}}
+section[data-testid="stSidebar"] a[data-testid="stSidebarNavLink"]:hover {{
+    background-color: rgba(21, 101, 192, 0.06);
+}}
+section[data-testid="stSidebar"] a[data-testid="stSidebarNavLink"][aria-current="page"] {{
+    background-color: rgba(21, 101, 192, 0.10);
+    font-weight: {TYPOGRAPHY["weight"]["semibold"]};
 }}
 </style>
 """

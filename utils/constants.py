@@ -3,7 +3,7 @@
 QUALITY_BANDS = {
     "POOR": (0, 29, "#d32f2f"),
     "NEEDS IMPROVEMENT": (30, 59, "#f57c00"),
-    "ADEQUATE": (60, 74, "#fbc02d"),
+    "ADEQUATE": (60, 74, "#f9a825"),
     "STRONG": (75, 89, "#388e3c"),
     "EXCEPTIONAL": (90, 100, "#1565c0"),
 }

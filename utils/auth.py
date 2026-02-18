@@ -22,8 +22,8 @@ def check_password() -> bool:
         unsafe_allow_html=True,
     )
 
-    # Center the form inputs with columns
-    _, center, _ = st.columns([1, 2, 1])
+    # Center the form inputs with columns — narrower to visually connect to card
+    _, center, _ = st.columns([1, 1.2, 1])
     with center:
         password = st.text_input("Password", type="password", key="password_input", label_visibility="collapsed", placeholder="Password")
         if st.button("Log in", type="primary", use_container_width=True):

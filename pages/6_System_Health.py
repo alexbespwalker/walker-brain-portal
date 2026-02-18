@@ -16,6 +16,7 @@ st.caption("Engineering metrics, model health, and cost tracking.")
 from utils.queries import (
     get_system_status, get_cost_tracking, get_drift_alerts, get_prompt_library,
 )
+from utils.database import get_supabase
 
 # Quick status for all users (before admin check)
 _quick_status = get_system_status()
@@ -32,11 +33,36 @@ else:
         unsafe_allow_html=True,
     )
 
+# Read-only summary for all users
+with st.spinner("Loading summary..."):
+    try:
+        from datetime import datetime, timedelta
+        _cutoff_7d = (datetime.utcnow() - timedelta(days=7)).isoformat()
+        _summary_rows = (
+            get_supabase().table("analysis_results")
+            .select("quality_score", count="exact")
+            .gte("analyzed_at", _cutoff_7d)
+            .execute()
+        )
+        _total_7d = _summary_rows.count or 0
+        _avg_daily = _total_7d / 7 if _total_7d else 0
+        _scores = [r["quality_score"] for r in (_summary_rows.data or []) if r.get("quality_score") is not None]
+        _avg_quality = sum(_scores) / len(_scores) if _scores else 0
+
+        cols = st.columns(3)
+        cols[0].metric("Processed (7d)", f"{_total_7d:,}")
+        cols[1].metric("Avg/day", f"{_avg_daily:.0f}")
+        cols[2].metric("Avg Quality (7d)", f"{_avg_quality:.1f}")
+    except Exception:
+        st.caption("Summary unavailable.")
+
+styled_divider()
+
 if not check_admin():
     st.warning("Full dashboard requires admin access.")
     st.stop()
 
-from utils.database import get_supabase, query_table, query_df
+from utils.database import query_table, query_df
 from components.charts import (
     cost_trend, quality_violin, quality_histogram, scatter_calibration,
 )

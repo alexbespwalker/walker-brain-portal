@@ -88,14 +88,15 @@ NAV_ITEMS = [
 cols = st.columns(3)
 for i, item in enumerate(NAV_ITEMS):
     with cols[i % 3]:
-        st.markdown(
-            f"""
-            <div class="wb-nav-card">
-                <div class="wb-nav-icon">{item["icon"]}</div>
-                <div class="wb-nav-title">{item["title"]}</div>
-                <div class="wb-nav-desc">{item["desc"]}</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        st.page_link(item["page"], label=f"Open {item['title']}", use_container_width=True)
+        with st.container(border=True):
+            st.markdown(
+                f"""
+                <div class="wb-nav-card" style="border:none; box-shadow:none;">
+                    <div class="wb-nav-icon">{item["icon"]}</div>
+                    <div class="wb-nav-title">{item["title"]}</div>
+                    <div class="wb-nav-desc">{item["desc"]}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            st.page_link(item["page"], label=f"{item['title']} \u2192", use_container_width=True)

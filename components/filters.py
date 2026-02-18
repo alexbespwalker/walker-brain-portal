@@ -5,6 +5,16 @@ from datetime import datetime, timedelta
 from utils.queries import get_case_types, get_emotional_tones, get_outcomes, get_languages
 from utils.constants import QUALITY_BANDS
 
+# Darkened text colors for WCAG AA compliance on light backgrounds.
+# Amber/orange bands need darker text to meet 4.5:1 contrast on 15% alpha bg.
+_BAND_TEXT_COLORS = {
+    "POOR": "#d32f2f",
+    "NEEDS IMPROVEMENT": "#7a3d00",
+    "ADEQUATE": "#7a5200",
+    "STRONG": "#388e3c",
+    "EXCEPTIONAL": "#1565c0",
+}
+
 
 def case_type_filter(key: str = "case_type") -> list[str] | None:
     """Multiselect for case types. Returns None if 'All' selected."""
@@ -31,10 +41,11 @@ def quality_range_filter(
         short = name if len(name) <= 12 else name[:12].rstrip() + "."
         hc = color.lstrip("#")
         r, g, b = int(hc[:2], 16), int(hc[2:4], 16), int(hc[4:6], 16)
-        bg = f"rgba({r},{g},{b},0.08)"
+        bg = f"rgba({r},{g},{b},0.15)"
+        text_color = _BAND_TEXT_COLORS.get(name, color)
         band_spans.append(
-            f'<span style="font-size:0.65rem; padding:1px 6px; border-radius:8px; '
-            f'background:{bg}; color:{color};">{short} {low}-{high}</span>'
+            f'<span style="font-size:0.7rem; padding:1px 6px; border-radius:8px; '
+            f'background:{bg}; color:{text_color};">{short} {low}-{high}</span>'
         )
     st.markdown(
         '<div style="display:flex; gap:4px; flex-wrap:wrap; margin-top:-8px;">'

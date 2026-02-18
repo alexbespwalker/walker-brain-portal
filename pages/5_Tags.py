@@ -45,11 +45,21 @@ def _show_fallback_tags():
         if tag_counts:
             from html import escape as _esc
             sorted_tags = sorted(tag_counts.items(), key=lambda x: -x[1])
+
+            def _tag_style(count: int) -> str:
+                if count > 100:
+                    return "font-size:0.92rem; font-weight:700;"
+                if count > 50:
+                    return "font-size:0.85rem;"
+                if count > 20:
+                    return "font-size:0.78rem;"
+                return "font-size:0.72rem;"
+
             badges_html = (
                 '<div style="display:flex; flex-wrap:wrap; gap:4px; max-width:100%;">'
                 + "".join(
                     f'<span class="wb-badge wb-badge-info" style="margin:2px;'
-                    f'{" font-size:0.8rem;" if count > 50 else ""}">'
+                    f'{_tag_style(count)}">'
                     f'{_esc(tag)} <b>{count}</b></span>'
                     for tag, count in sorted_tags[:50]
                 )
@@ -99,10 +109,8 @@ with st.spinner("Loading tags..."):
                     count = t.get("usage_count", 0)
                     st.caption(f"  {tag} \u2014 {count} uses")
         else:
-            st.caption("Loading tags from analyzed calls...")
             _show_fallback_tags()
     except Exception:
-        st.caption("Loading tags from analyzed calls...")
         _show_fallback_tags()
 
 
@@ -125,6 +133,14 @@ with st.spinner("Loading objection data..."):
 
         if obj_data:
             obj_df = pd.DataFrame(obj_data)
+            # Pre-filter junk categories before charting
+            _junk = {"undefined", "none", "null", "n/a", ""}
+            if "obj_category" in obj_df.columns:
+                obj_df = obj_df[
+                    obj_df["obj_category"].apply(
+                        lambda x: isinstance(x, str) and x.strip().lower() not in _junk
+                    )
+                ].copy()
             try:
                 fig = objection_bar(obj_df)
                 st.plotly_chart(fig, use_container_width=True)
@@ -136,13 +152,17 @@ with st.spinner("Loading objection data..."):
                 total_last = sum((row.get("freq_last_week") or 0) for _, row in obj_df.iterrows())
                 has_baseline = total_last > 0 and total_last >= total_this * 0.10
                 if has_baseline:
+                    _skip = {"undefined", "none", "null", "n/a", ""}
                     st.markdown("**Week-over-week changes:**")
                     for _, row in obj_df.iterrows():
+                        _cat_raw = row.get("obj_category")
+                        if not isinstance(_cat_raw, str) or _cat_raw.strip().lower() in _skip:
+                            continue
                         this_w = row.get("freq_this_week", 0) or 0
                         last_w = row.get("freq_last_week", 0) or 0
                         delta = this_w - last_w
                         arrow = "+" if delta > 0 else ""
-                        cat_label = row["obj_category"].replace("_", " ").title() if isinstance(row["obj_category"], str) else row["obj_category"]
+                        cat_label = _cat_raw.replace("_", " ").title()
                         st.caption(
                             f"  {cat_label}: {this_w} this week "
                             f"({arrow}{delta} vs last week)"
@@ -171,7 +191,7 @@ with st.spinner("Loading objection data..."):
                         cats = []
                 if isinstance(cats, list):
                     for c in cats:
-                        if isinstance(c, str) and c.strip() and c.lower() != "undefined":
+                        if isinstance(c, str) and c.strip() and c.lower() not in ("undefined", "none", "null", "n/a"):
                             obj_counts[c] = obj_counts.get(c, 0) + 1
 
             if obj_counts:

@@ -109,16 +109,44 @@ else:
             )
         )
 
+    # Pretty-print quality_sub_scores as compact readable string
+    if "quality_sub_scores" in display_df.columns:
+        def _fmt_sub_scores(val):
+            if val == "\u2014" or val is None:
+                return "\u2014"
+            try:
+                d = json.loads(val) if isinstance(val, str) else val
+            except (json.JSONDecodeError, TypeError):
+                return val
+            if not isinstance(d, dict):
+                return val
+            abbr = {"case_potential": "Case", "narrative_quality": "Narr",
+                    "agent_performance": "Agent", "completeness": "Compl"}
+            parts = []
+            for k, label in abbr.items():
+                v = d.get(k)
+                if v is not None:
+                    parts.append(f"{label}:{v}")
+            return " | ".join(parts) if parts else val
+
+        display_df["quality_sub_scores"] = display_df["quality_sub_scores"].apply(_fmt_sub_scores)
+
     # Format timestamps for readability
     if "analyzed_at" in display_df.columns:
         display_df["analyzed_at"] = pd.to_datetime(
             display_df["analyzed_at"], errors="coerce"
         ).dt.strftime("%b %d, %Y %I:%M %p")
 
+    col_config = {}
+    if "quality_sub_scores" in display_df.columns:
+        col_config["quality_sub_scores"] = st.column_config.TextColumn(
+            "Quality Sub-Scores", width="large",
+        )
     st.dataframe(
         display_df,
         use_container_width=True,
         height=500,
+        column_config=col_config,
     )
 
     # Expandable row detail

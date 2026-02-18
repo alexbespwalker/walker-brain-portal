@@ -21,7 +21,7 @@ def metric_card(label: str, value, delta=None, color: str | None = None):
             )
         st.markdown(
             f'<div class="wb-metric-card" style="border-left: 3px solid {color};">'
-            f'<div class="wb-metric-label">{label}</div>'
+            f'<div class="wb-metric-label" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{label}</div>'
             f'<div class="wb-metric-value" style="color:{color};">{value}</div>'
             f"{delta_html}"
             f"</div>",

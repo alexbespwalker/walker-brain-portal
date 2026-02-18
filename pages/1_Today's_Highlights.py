@@ -34,15 +34,16 @@ with col1:
     metric_card("New Quotes (7d)", metrics["quotes"],
                 delta=metrics["quotes"] - prior["quotes"], color=COLORS["primary"])
 with col2:
-    metric_card("Testimonial Candidates (7d)", metrics["testimonials"],
+    metric_card("Testimonials (7d)", metrics["testimonials"],
                 delta=metrics["testimonials"] - prior["testimonials"], color=COLORS["success"])
 with col3:
-    metric_card("Content-Worthy Calls (7d)", metrics["content_worthy"],
+    metric_card("Content-Worthy (7d)", metrics["content_worthy"],
                 delta=metrics["content_worthy"] - prior["content_worthy"], color=COLORS["info"])
 with col4:
     median = metrics["median_quality"]
     band_name, band_color = quality_band(median)
-    metric_card("Median Quality (7d)", f"{median} \u2014 {band_name}",
+    band_short = band_name[:5] + "." if len(band_name) > 8 else band_name
+    metric_card("Quality (7d)", f"{median} — {band_short}",
                 delta=median - prior["median_quality"], color=band_color)
 
 styled_divider()
