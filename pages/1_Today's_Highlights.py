@@ -11,7 +11,7 @@ if not check_password():
 
 inject_theme()
 
-st.title("Today's Highlights")
+st.title(":bar_chart: Today's Highlights")
 st.caption("Curated content picks for the creative team.")
 
 from components.cards import metric_card, quote_card
@@ -38,7 +38,7 @@ with col2:
                 delta=metrics["testimonials"] - prior["testimonials"], color=COLORS["success"])
 with col3:
     metric_card("Content-Worthy Calls (7d)", metrics["content_worthy"],
-                delta=metrics["content_worthy"] - prior["content_worthy"], color=COLORS["secondary"])
+                delta=metrics["content_worthy"] - prior["content_worthy"], color=COLORS["info"])
 with col4:
     median = metrics["median_quality"]
     band_name, band_color = quality_band(median)
@@ -59,7 +59,7 @@ with left:
         for row in top_quotes:
             quote_card(row, show_copy=True)
     else:
-        st.info("No quotes available yet.")
+        st.caption("No quote data available yet.")
 
 with right:
     styled_header("Trending This Week")
@@ -88,7 +88,7 @@ with right:
                     cats = []
             if isinstance(cats, list):
                 for c in cats:
-                    if isinstance(c, str):
+                    if isinstance(c, str) and c.strip() and c.lower() != "undefined":
                         obj_counts[c] = obj_counts.get(c, 0) + 1
         if obj_counts:
             top_obj = max(obj_counts, key=obj_counts.get)
@@ -188,8 +188,11 @@ with chart_left:
     styled_header("Call Volume", subtitle="Last 7 days")
     daily = get_daily_volume(days=7)
     if not daily.empty:
-        fig = volume_trend(daily)
-        st.plotly_chart(fig, use_container_width=True)
+        try:
+            fig = volume_trend(daily)
+            st.plotly_chart(fig, use_container_width=True)
+        except Exception:
+            st.caption("Chart unavailable.")
     else:
         st.caption("No volume data available.")
 

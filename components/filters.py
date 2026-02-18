@@ -3,6 +3,7 @@
 import streamlit as st
 from datetime import datetime, timedelta
 from utils.queries import get_case_types, get_emotional_tones, get_outcomes, get_languages
+from utils.constants import QUALITY_BANDS
 
 
 def case_type_filter(key: str = "case_type") -> list[str] | None:
@@ -17,14 +18,31 @@ def quality_range_filter(
     default_max: int = 100,
     key: str = "quality",
 ) -> tuple[int, int]:
-    """Slider for quality score range."""
-    return st.slider(
+    """Slider for quality score range with band legend."""
+    result = st.slider(
         "Quality Score",
         min_value=0,
         max_value=100,
         value=(default_min, default_max),
         key=key,
     )
+    band_spans = []
+    for name, (low, high, color) in QUALITY_BANDS.items():
+        short = name if len(name) <= 12 else name[:12].rstrip() + "."
+        hc = color.lstrip("#")
+        r, g, b = int(hc[:2], 16), int(hc[2:4], 16), int(hc[4:6], 16)
+        bg = f"rgba({r},{g},{b},0.08)"
+        band_spans.append(
+            f'<span style="font-size:0.65rem; padding:1px 6px; border-radius:8px; '
+            f'background:{bg}; color:{color};">{short} {low}-{high}</span>'
+        )
+    st.markdown(
+        '<div style="display:flex; gap:4px; flex-wrap:wrap; margin-top:-8px;">'
+        + " ".join(band_spans)
+        + '</div>',
+        unsafe_allow_html=True,
+    )
+    return result
 
 
 def date_range_filter(

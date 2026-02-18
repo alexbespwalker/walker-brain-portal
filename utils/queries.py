@@ -123,7 +123,7 @@ DETAIL_COLUMNS = (
     "repeated_questions_from_caller, "
     "opening_emotional_state, mid_call_emotional_shift, end_state_emotion, "
     "prompt_version_used, validation_passed, api_cost, input_tokens, output_tokens, "
-    "analysis_type, estimated_case_value_category"
+    "has_attorney_leg, analysis_type, estimated_case_value_category"
 )
 
 
@@ -155,10 +155,13 @@ def search_calls(
     else:
         q = q.limit(limit)
     if text_search:
+        safe = (text_search.replace("\\", "\\\\").replace("%", "\\%")
+                .replace("_", "\\_").replace("(", "\\(").replace(")", "\\)")
+                .replace(".", "\\.").replace(",", "\\,"))
         q = q.or_(
-            f"summary.ilike.%{text_search}%,"
-            f"key_quote.ilike.%{text_search}%,"
-            f"primary_topic.ilike.%{text_search}%"
+            f"summary.ilike.%{safe}%,"
+            f"key_quote.ilike.%{safe}%,"
+            f"primary_topic.ilike.%{safe}%"
         )
     if case_types:
         q = q.in_("case_type", case_types)
@@ -460,3 +463,115 @@ def get_drift_alerts(limit: int = 10) -> list[dict]:
 def get_prompt_library() -> list[dict]:
     """Fetch all prompts."""
     return query_table("prompt_library", order="-created_at")
+
+
+# ---------------------------------------------------------------------------
+# Count helpers (for pagination)
+# ---------------------------------------------------------------------------
+
+def count_quotes(
+    min_quality: int = 0,
+    max_quality: int = 100,
+    case_types: list[str] | None = None,
+    tones: list[str] | None = None,
+    languages: list[str] | None = None,
+    testimonial_only: bool = False,
+    start_date: str | None = None,
+    end_date: str | None = None,
+) -> int:
+    """Count total quotes matching filters."""
+    client = get_supabase()
+    q = (
+        client.table("analysis_results")
+        .select("source_transcript_id", count="exact")
+        .not_.is_("key_quote", "null")
+        .neq("key_quote", "")
+        .gte("quality_score", min_quality)
+        .lte("quality_score", max_quality)
+    )
+    if case_types:
+        q = q.in_("case_type", case_types)
+    if tones:
+        q = q.in_("emotional_tone", tones)
+    if languages:
+        q = q.in_("original_language", languages)
+    if testimonial_only:
+        q = q.eq("testimonial_candidate", True)
+    if start_date:
+        q = q.gte("analyzed_at", start_date)
+    if end_date:
+        q = q.lte("analyzed_at", end_date)
+    return q.execute().count or 0
+
+
+def count_calls(
+    text_search: str | None = None,
+    case_types: list[str] | None = None,
+    min_quality: int = 0,
+    max_quality: int = 100,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    languages: list[str] | None = None,
+    tones: list[str] | None = None,
+    has_quote: bool = False,
+    content_worthy: bool = False,
+) -> int:
+    """Count total calls matching filters."""
+    client = get_supabase()
+    q = (
+        client.table("analysis_results")
+        .select("source_transcript_id", count="exact")
+        .gte("quality_score", min_quality)
+        .lte("quality_score", max_quality)
+    )
+    if text_search:
+        safe = (text_search.replace("\\", "\\\\").replace("%", "\\%")
+                .replace("_", "\\_").replace("(", "\\(").replace(")", "\\)")
+                .replace(".", "\\.").replace(",", "\\,"))
+        q = q.or_(
+            f"summary.ilike.%{safe}%,"
+            f"key_quote.ilike.%{safe}%,"
+            f"primary_topic.ilike.%{safe}%"
+        )
+    if case_types:
+        q = q.in_("case_type", case_types)
+    if tones:
+        q = q.in_("emotional_tone", tones)
+    if languages:
+        q = q.in_("original_language", languages)
+    if start_date:
+        q = q.gte("analyzed_at", start_date)
+    if end_date:
+        q = q.lte("analyzed_at", end_date)
+    if has_quote:
+        q = q.not_.is_("key_quote", "null").neq("key_quote", "")
+    if content_worthy:
+        q = q.eq("content_generation_flag", True)
+    return q.execute().count or 0
+
+
+def count_explorer_rows(
+    case_types: list[str] | None = None,
+    min_quality: int = 0,
+    max_quality: int = 100,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    languages: list[str] | None = None,
+) -> int:
+    """Count total rows for Data Explorer matching filters."""
+    client = get_supabase()
+    q = (
+        client.table("analysis_results")
+        .select("source_transcript_id", count="exact")
+        .gte("quality_score", min_quality)
+        .lte("quality_score", max_quality)
+    )
+    if case_types:
+        q = q.in_("case_type", case_types)
+    if languages:
+        q = q.in_("original_language", languages)
+    if start_date:
+        q = q.gte("analyzed_at", start_date)
+    if end_date:
+        q = q.lte("analyzed_at", end_date)
+    return q.execute().count or 0

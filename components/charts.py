@@ -7,6 +7,13 @@ from utils.constants import QUALITY_BANDS, CASE_TYPE_COLORS
 from utils.theme import PLOTLY_TEMPLATE, COLORS
 
 
+def _hex_to_rgba(hex_color: str, alpha: float) -> str:
+    """Convert a hex color (#RRGGBB) to rgba() string for Plotly."""
+    hex_color = hex_color.lstrip("#")
+    r, g, b = int(hex_color[:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
+    return f"rgba({r},{g},{b},{alpha})"
+
+
 def _apply_template(fig: go.Figure, **overrides) -> go.Figure:
     """Apply the shared Plotly template with optional per-chart overrides."""
     layout = {**PLOTLY_TEMPLATE, **overrides}
@@ -14,8 +21,23 @@ def _apply_template(fig: go.Figure, **overrides) -> go.Figure:
     return fig
 
 
+def _empty_chart(message: str, height: int = 200) -> go.Figure:
+    """Return a blank Plotly figure with a centered message annotation."""
+    fig = go.Figure()
+    fig.add_annotation(
+        text=message,
+        showarrow=False,
+        xref="paper", yref="paper",
+        x=0.5, y=0.5,
+        font=dict(size=14, color=COLORS["text_hint"]),
+    )
+    return _apply_template(fig, height=height)
+
+
 def quality_histogram(df: pd.DataFrame, column: str = "quality_score") -> go.Figure:
     """Quality score histogram with band overlays."""
+    if df.empty or column not in df.columns:
+        return _empty_chart("No quality data")
     fig = go.Figure()
 
     # Band overlays
@@ -48,6 +70,8 @@ def quality_histogram(df: pd.DataFrame, column: str = "quality_score") -> go.Fig
 
 def case_type_pie(df: pd.DataFrame, column: str = "case_type") -> go.Figure:
     """Donut chart of case type distribution."""
+    if df.empty or column not in df.columns:
+        return _empty_chart("No case type data")
     counts = df[column].value_counts().reset_index()
     counts.columns = ["case_type", "count"]
 
@@ -72,6 +96,8 @@ def case_type_pie(df: pd.DataFrame, column: str = "case_type") -> go.Figure:
 
 def volume_trend(df: pd.DataFrame) -> go.Figure:
     """Daily volume trend line chart. Expects columns: date, count."""
+    if df.empty:
+        return _empty_chart("No volume data")
     fig = go.Figure()
     fig.add_trace(go.Scatter(
         x=df["date"],
@@ -80,7 +106,7 @@ def volume_trend(df: pd.DataFrame) -> go.Figure:
         line=dict(color=COLORS["primary"], width=2.5),
         marker=dict(size=7, color=COLORS["primary"]),
         fill="tozeroy",
-        fillcolor=f"{COLORS['primary']}0a",
+        fillcolor=_hex_to_rgba(COLORS["primary"], 0.04),
         name="Calls",
     ))
     return _apply_template(
@@ -96,6 +122,14 @@ def objection_bar(df: pd.DataFrame) -> go.Figure:
 
     Expects columns: obj_category, frequency.
     """
+    # Filter out null, empty, and "undefined" categories
+    df = df[
+        df["obj_category"].apply(
+            lambda x: isinstance(x, str) and x.strip() != "" and x.lower() != "undefined"
+        )
+    ].copy()
+    if df.empty:
+        return _empty_chart("No objection data")
     df_sorted = df.sort_values("frequency", ascending=True).copy()
     df_sorted["obj_category"] = df_sorted["obj_category"].apply(
         lambda x: x.replace("_", " ").title() if isinstance(x, str) else x
@@ -108,11 +142,13 @@ def objection_bar(df: pd.DataFrame) -> go.Figure:
         )
     else:
         df_sorted["label"] = df_sorted["frequency"].astype(str)
+    colorway = PLOTLY_TEMPLATE["colorway"]
+    bar_colors = [colorway[i % len(colorway)] for i in range(len(df_sorted))]
     fig = go.Figure(go.Bar(
         x=df_sorted["frequency"],
         y=df_sorted["obj_category"],
         orientation="h",
-        marker_color=COLORS["warning"],
+        marker_color=bar_colors,
         text=df_sorted["label"],
         textposition="outside",
     ))
@@ -126,6 +162,8 @@ def objection_bar(df: pd.DataFrame) -> go.Figure:
 
 def cost_trend(df: pd.DataFrame) -> go.Figure:
     """Daily cost trend chart. Expects columns: date, total_cost."""
+    if df.empty:
+        return _empty_chart("No cost data")
     fig = go.Figure()
     fig.add_trace(go.Scatter(
         x=df["date"],
@@ -134,7 +172,7 @@ def cost_trend(df: pd.DataFrame) -> go.Figure:
         line=dict(color=COLORS["success"], width=2.5),
         marker=dict(size=6, color=COLORS["success"]),
         fill="tozeroy",
-        fillcolor=f"{COLORS['success']}10",
+        fillcolor=_hex_to_rgba(COLORS["success"], 0.06),
         name="Daily Cost",
     ))
     return _apply_template(
@@ -147,11 +185,13 @@ def cost_trend(df: pd.DataFrame) -> go.Figure:
 
 def quality_violin(df: pd.DataFrame, column: str = "quality_score") -> go.Figure:
     """Violin plot of quality score distribution."""
+    if df.empty or column not in df.columns:
+        return _empty_chart("No quality data")
     fig = go.Figure(go.Violin(
         y=df[column].dropna(),
         box_visible=True,
         meanline_visible=True,
-        fillcolor="#e3f2fd",
+        fillcolor=_hex_to_rgba(COLORS["primary"], 0.08),
         line_color=COLORS["primary"],
         opacity=0.8,
     ))
@@ -169,6 +209,8 @@ def scatter_calibration(
     y_col: str = "consensus_score",
 ) -> go.Figure:
     """Scatter plot for Grok vs consensus calibration."""
+    if df.empty:
+        return _empty_chart("No calibration data")
     fig = go.Figure()
 
     # Identity line

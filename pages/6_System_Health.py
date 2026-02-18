@@ -10,7 +10,7 @@ if not check_password():
 
 inject_theme()
 
-st.title("System Health")
+st.title(":gear: System Health")
 st.caption("Engineering metrics, model health, and cost tracking.")
 
 from utils.queries import (
@@ -48,9 +48,15 @@ styled_header("System Status")
 status = get_system_status()
 if status:
     is_active = status.get("system_active", False)
-    daily_budget = status.get("daily_budget_limit", 0) or 0
-    daily_spend = status.get("current_daily_spend", 0) or 0
-    budget_remaining = daily_budget - daily_spend
+    try:
+        daily_budget = float(status.get("daily_budget_limit") or 0)
+    except (TypeError, ValueError):
+        daily_budget = 0.0
+    try:
+        daily_spend = float(status.get("current_daily_spend") or 0)
+    except (TypeError, ValueError):
+        daily_spend = 0.0
+    budget_remaining = max(0, daily_budget - daily_spend)
 
     cols = st.columns(4)
     cols[0].metric("Active", "Yes" if is_active else "No")
@@ -66,9 +72,13 @@ styled_divider()
 styled_header("Cost Tracking", subtitle="Last 30 days")
 cost_df = get_cost_tracking(days=30)
 if not cost_df.empty and "date" in cost_df.columns and "total_cost" in cost_df.columns:
-    fig = cost_trend(cost_df)
-    st.plotly_chart(fig, use_container_width=True)
+    try:
+        fig = cost_trend(cost_df)
+        st.plotly_chart(fig, use_container_width=True)
+    except Exception:
+        st.caption("Chart unavailable.")
 
+    cost_df["total_cost"] = pd.to_numeric(cost_df["total_cost"], errors="coerce").fillna(0)
     cols = st.columns(3)
     total = cost_df["total_cost"].sum()
     avg_daily = cost_df["total_cost"].mean()
@@ -84,37 +94,38 @@ styled_divider()
 
 # --- Quality Analytics ---
 styled_header("Quality Distribution")
-try:
-    q_rows = (
-        client.table("analysis_results")
-        .select("quality_score, confidence_score")
-        .not_.is_("quality_score", "null")
-        .order("analyzed_at", desc=True)
-        .limit(2000)
-        .execute()
-        .data
-    )
-    if q_rows:
-        qdf = pd.DataFrame(q_rows)
-        left, right = st.columns(2)
-        with left:
-            st.markdown("**Quality Score (violin)**")
-            fig = quality_violin(qdf)
-            st.plotly_chart(fig, use_container_width=True)
-        with right:
-            st.markdown("**Quality Score (histogram)**")
-            fig = quality_histogram(qdf)
-            st.plotly_chart(fig, use_container_width=True)
+with st.spinner("Loading quality analytics..."):
+    try:
+        q_rows = (
+            client.table("analysis_results")
+            .select("quality_score, confidence_score")
+            .not_.is_("quality_score", "null")
+            .order("analyzed_at", desc=True)
+            .limit(2000)
+            .execute()
+            .data
+        )
+        if q_rows:
+            qdf = pd.DataFrame(q_rows)
+            left, right = st.columns(2)
+            with left:
+                st.markdown("**Quality Score (violin)**")
+                fig = quality_violin(qdf)
+                st.plotly_chart(fig, use_container_width=True)
+            with right:
+                st.markdown("**Quality Score (histogram)**")
+                fig = quality_histogram(qdf)
+                st.plotly_chart(fig, use_container_width=True)
 
-        if "confidence_score" in qdf.columns:
-            st.markdown("**Confidence Score Distribution**")
-            conf_df = qdf[qdf["confidence_score"].notna()]
-            if not conf_df.empty:
-                st.bar_chart(conf_df["confidence_score"].value_counts().sort_index())
-    else:
-        st.caption("No quality data available.")
-except Exception:
-    st.caption("Unable to load quality data.")
+            if "confidence_score" in qdf.columns:
+                st.markdown("**Confidence Score Distribution**")
+                conf_df = qdf[qdf["confidence_score"].notna()]
+                if not conf_df.empty:
+                    st.bar_chart(conf_df["confidence_score"].value_counts().sort_index())
+        else:
+            st.caption("No quality data available.")
+    except Exception:
+        st.caption("Unable to load quality data.")
 
 styled_divider()
 
@@ -124,7 +135,10 @@ alerts = get_drift_alerts(limit=10)
 if alerts:
     for alert in alerts:
         created = str(alert.get("created_at", ""))[:10]
-        max_dev = alert.get("max_deviation", 0)
+        try:
+            max_dev = float(alert.get("max_deviation") or 0)
+        except (TypeError, ValueError):
+            max_dev = 0.0
         report = alert.get("drift_report", "")
         if max_dev and max_dev > 3:
             severity = "High"
@@ -174,26 +188,27 @@ styled_divider()
 
 # --- Pipeline Throughput ---
 styled_header("Pipeline Throughput", subtitle="Last 7 days")
-try:
-    from datetime import datetime, timedelta
-    cutoff = (datetime.utcnow() - timedelta(days=7)).isoformat()
-    rows = (
-        client.table("analysis_results")
-        .select("analyzed_at, validation_passed, confidence_score", count="exact")
-        .gte("analyzed_at", cutoff)
-        .execute()
-    )
-    total = rows.count or 0
-    data = rows.data or []
-    passed = sum(1 for r in data if r.get("validation_passed") is True)
-    pass_rate = (passed / total * 100) if total else 0
+with st.spinner("Loading throughput data..."):
+    try:
+        from datetime import datetime, timedelta
+        cutoff = (datetime.utcnow() - timedelta(days=7)).isoformat()
+        rows = (
+            client.table("analysis_results")
+            .select("analyzed_at, validation_passed, confidence_score", count="exact")
+            .gte("analyzed_at", cutoff)
+            .execute()
+        )
+        total = rows.count or 0
+        data = rows.data or []
+        passed = sum(1 for r in data if r.get("validation_passed") is True)
+        pass_rate = (passed / total * 100) if total else 0
 
-    cols = st.columns(3)
-    cols[0].metric("Processed (7d)", f"{total:,}")
-    cols[1].metric("Avg/day", f"{total / 7:.0f}")
-    cols[2].metric("Validation pass rate", f"{pass_rate:.1f}%")
-except Exception:
-    st.caption("Throughput data unavailable.")
+        cols = st.columns(3)
+        cols[0].metric("Processed (7d)", f"{total:,}")
+        cols[1].metric("Avg/day", f"{total / 7:.0f}")
+        cols[2].metric("Validation pass rate", f"{pass_rate:.1f}%")
+    except Exception:
+        st.caption("Throughput data unavailable.")
 
 styled_divider()
 

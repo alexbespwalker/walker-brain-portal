@@ -54,34 +54,34 @@ NAV_ITEMS = [
         "page": "pages/1_Today's_Highlights.py",
     },
     {
-        "icon": "&#128172;",
-        "title": "Quote Bank",
-        "desc": "Search and copy quotes for social posts, ads, and landing pages.",
-        "page": "pages/2_Quote_Bank.py",
-    },
-    {
         "icon": "&#128269;",
         "title": "Call Search",
         "desc": "Filter, browse, and deep-dive into analyzed call transcripts.",
-        "page": "pages/3_Call_Search.py",
+        "page": "pages/2_Call_Search.py",
     },
     {
         "icon": "&#128203;",
         "title": "Data Explorer",
         "desc": "Toggle 116 extracted fields, export CSV, and review raw data.",
-        "page": "pages/4_Call_Data_Explorer.py",
+        "page": "pages/3_Call_Data_Explorer.py",
+    },
+    {
+        "icon": "&#128172;",
+        "title": "Quote Bank",
+        "desc": "Search and copy quotes for social posts, ads, and landing pages.",
+        "page": "pages/4_Quote_Bank.py",
     },
     {
         "icon": "&#127991;&#65039;",
         "title": "Tags & Objections",
         "desc": "Browse tag taxonomy and track objection category trends.",
-        "page": "pages/8_Tags.py",
+        "page": "pages/5_Tags.py",
     },
     {
         "icon": "&#9881;&#65039;",
         "title": "System Health",
         "desc": "Cost tracking, quality drift alerts, and pipeline metrics.",
-        "page": "pages/9_System_Health.py",
+        "page": "pages/6_System_Health.py",
     },
 ]
 

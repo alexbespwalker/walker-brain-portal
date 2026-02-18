@@ -35,10 +35,10 @@ COLORS = {
     "text_hint": "#9e9e9e",
     "divider": "#e0e0e0",
     # Tints for card backgrounds (color + 08 alpha)
-    "tint_primary": "#1565c008",
-    "tint_success": "#2e7d3208",
-    "tint_warning": "#f57f1708",
-    "tint_error": "#c6282808",
+    "tint_primary": "rgba(21, 101, 192, 0.03)",
+    "tint_success": "rgba(46, 125, 50, 0.03)",
+    "tint_warning": "rgba(245, 127, 23, 0.03)",
+    "tint_error": "rgba(198, 40, 40, 0.03)",
 }
 
 # ---------------------------------------------------------------------------
@@ -274,10 +274,13 @@ input[data-testid="stTextInput"] {{
     margin-bottom: {SPACING["xs"]};
 }}
 .wb-metric-value {{
-    font-size: 1.75rem;
+    font-size: clamp(1.25rem, 2.5vw, 1.75rem);
     font-weight: {TYPOGRAPHY["weight"]["bold"]};
     line-height: {TYPOGRAPHY["line_height"]["tight"]};
     margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }}
 .wb-metric-delta {{
     font-size: {TYPOGRAPHY["size"]["xs"]};
@@ -397,6 +400,19 @@ code {{
 /* --- Progress bars (agent scores) --- */
 div[data-testid="stProgress"] > div > div {{
     border-radius: 4px;
+}}
+
+/* --- Data table horizontal scroll --- */
+div[data-testid="stDataFrame"] {{
+    overflow-x: auto !important;
+}}
+
+/* --- Code block overflow wrapping --- */
+div[data-testid="stCodeBlock"] pre {{
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 200px;
+    overflow-y: auto;
 }}
 </style>
 """

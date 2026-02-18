@@ -9,7 +9,7 @@ if not check_password():
 
 inject_theme()
 
-st.title("Quote Bank")
+st.title(":speech_balloon: Quote Bank")
 st.caption("Find quotes for social posts, ad copy, and landing pages.")
 
 from components.filters import (
@@ -18,20 +18,32 @@ from components.filters import (
 )
 from components.cards import quote_card
 from components.pagination import paginated_controls
-from utils.queries import fetch_quotes
+from utils.queries import fetch_quotes, count_quotes
 
 # --- Sidebar filters ---
 with st.sidebar:
     st.header("Filters")
+    test_only = testimonial_toggle(key="qb_testimonial")
     tones = emotional_tone_filter(key="qb_tone")
     case_types = case_type_filter(key="qb_case")
     min_q, max_q = quality_range_filter(default_min=0, default_max=100, key="qb_quality")
     languages = language_filter(key="qb_lang")
     start_date, end_date = date_range_filter(key="qb_date")
-    test_only = testimonial_toggle(key="qb_testimonial")
 
-# --- Pagination ---
-offset, page = paginated_controls(total_label="quotes", key="qb_page")
+# --- Reset page when filters change ---
+_fkey = f"{test_only}|{tones}|{case_types}|{min_q}|{max_q}|{languages}|{start_date}|{end_date}"
+if st.session_state.get("qb_page_filter_hash") != _fkey:
+    st.session_state["qb_page"] = 0
+    st.session_state["qb_page_filter_hash"] = _fkey
+
+# --- Count + Pagination ---
+total = count_quotes(
+    min_quality=min_q, max_quality=max_q, case_types=case_types,
+    tones=tones, languages=languages, testimonial_only=test_only,
+    start_date=str(start_date) if start_date else None,
+    end_date=str(end_date) if end_date else None,
+)
+offset, page = paginated_controls(total_label="quotes", key="qb_page", total_count=total)
 
 # --- Fetch quotes ---
 with st.spinner("Loading quotes..."):
@@ -49,7 +61,7 @@ with st.spinner("Loading quotes..."):
     )
 
 if not quotes:
-    st.info("No quotes found matching your filters. Try widening your search.")
+    st.info("No quotes found matching your filters.")
 else:
     st.markdown(f"**Showing {len(quotes)} quotes** (page {page + 1})")
     for row in quotes:

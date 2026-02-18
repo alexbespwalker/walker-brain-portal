@@ -6,15 +6,18 @@ import streamlit as st
 
 
 def download_csv(df: pd.DataFrame, filename: str = "export.csv") -> None:
-    """Render a CSV download button for the given DataFrame."""
+    """Render a right-aligned CSV download button for the given DataFrame."""
     csv_buf = io.StringIO()
     df.to_csv(csv_buf, index=False)
-    st.download_button(
-        label="Export CSV",
-        data=csv_buf.getvalue(),
-        file_name=filename,
-        mime="text/csv",
-    )
+    _, btn_col = st.columns([3, 1])
+    with btn_col:
+        st.download_button(
+            label="Export CSV",
+            data=csv_buf.getvalue(),
+            file_name=filename,
+            mime="text/csv",
+            type="primary",
+        )
 
 
 def format_quote_for_clipboard(

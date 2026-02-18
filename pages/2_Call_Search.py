@@ -11,7 +11,7 @@ if not check_password():
 
 inject_theme()
 
-st.title("Call Search")
+st.title(":mag: Call Search")
 st.caption("Filter, browse, and deep-dive into analyzed calls.")
 
 from components.filters import (
@@ -21,7 +21,7 @@ from components.filters import (
 )
 from components.cards import call_card, call_detail_panel
 from components.pagination import paginated_controls
-from utils.queries import search_calls, get_call_detail, get_transcript
+from utils.queries import search_calls, get_call_detail, get_transcript, count_calls
 from utils.export import download_csv
 
 # --- Sidebar filters ---
@@ -36,8 +36,19 @@ with st.sidebar:
     has_quote = has_quote_toggle(key="cs_quote")
     content_worthy = content_worthy_toggle(key="cs_content")
 
-# --- Pagination ---
-offset, page = paginated_controls(total_label="calls", key="cs_page")
+# --- Reset page when filters change ---
+_fkey = f"{text}|{case_types}|{min_q}|{max_q}|{start_date}|{end_date}|{languages}|{tones}|{has_quote}|{content_worthy}"
+if st.session_state.get("cs_page_filter_hash") != _fkey:
+    st.session_state["cs_page"] = 0
+    st.session_state["cs_page_filter_hash"] = _fkey
+
+# --- Count + Pagination ---
+total = count_calls(
+    text_search=text, case_types=case_types, min_quality=min_q, max_quality=max_q,
+    start_date=start_date, end_date=end_date, languages=languages, tones=tones,
+    has_quote=has_quote, content_worthy=content_worthy,
+)
+offset, page = paginated_controls(total_label="calls", key="cs_page", total_count=total)
 
 # --- Fetch results ---
 with st.spinner("Searching calls..."):
@@ -82,8 +93,12 @@ else:
                 st.markdown(detail.get("summary", "\u2014"))
 
                 if detail.get("key_quote"):
+                    from html import escape as _esc
                     styled_header("Key Quote")
-                    st.code(detail["key_quote"], language=None)
+                    st.markdown(
+                        f'<div class="wb-quote-card"><div class="wb-quote-text">&ldquo;{_esc(detail["key_quote"])}&rdquo;</div></div>',
+                        unsafe_allow_html=True,
+                    )
 
                 call_detail_panel(detail)
 

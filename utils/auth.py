@@ -27,7 +27,14 @@ def check_password() -> bool:
     with center:
         password = st.text_input("Password", type="password", key="password_input", label_visibility="collapsed", placeholder="Password")
         if st.button("Log in", type="primary", use_container_width=True):
-            if password == st.secrets["auth"]["password"]:
+            try:
+                configured = st.secrets["auth"]["password"]
+            except KeyError:
+                st.error("Portal password not configured. Contact administrator.")
+                return False
+            if not configured:
+                st.error("Portal password not configured. Contact administrator.")
+            elif password == configured:
                 st.session_state["authenticated"] = True
                 st.rerun()
             else:
@@ -42,7 +49,14 @@ def check_admin() -> bool:
 
     admin_pw = st.text_input("Admin password", type="password", key="admin_pw")
     if st.button("Authenticate as admin"):
-        if admin_pw == st.secrets["auth"].get("admin_password", ""):
+        try:
+            configured = st.secrets["auth"].get("admin_password", "")
+        except KeyError:
+            st.error("Admin login is not configured.")
+            return False
+        if not configured or configured == "__DISABLED__":
+            st.error("Admin login is not configured.")
+        elif admin_pw == configured:
             st.session_state["admin_authenticated"] = True
             st.rerun()
         else:

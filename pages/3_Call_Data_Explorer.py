@@ -11,7 +11,7 @@ if not check_password():
 
 inject_theme()
 
-st.title("Call Data Explorer")
+st.title(":clipboard: Call Data Explorer")
 st.caption("Explore all extracted fields. Toggle column groups to customize your view.")
 
 from components.filters import (
@@ -19,7 +19,7 @@ from components.filters import (
 )
 from components.cards import call_detail_panel
 from components.pagination import paginated_controls
-from utils.queries import fetch_explorer_data, get_call_detail, get_transcript
+from utils.queries import fetch_explorer_data, get_call_detail, get_transcript, count_explorer_rows
 from utils.export import download_csv
 from utils.constants import COLUMN_GROUPS
 
@@ -57,8 +57,18 @@ if not columns:
     st.warning("Select at least one column group.")
     st.stop()
 
-# --- Pagination ---
-offset, page = paginated_controls(total_label="rows", key="ex_page")
+# --- Reset page when filters change ---
+_fkey = f"{case_types}|{min_q}|{max_q}|{start_date}|{end_date}|{languages}"
+if st.session_state.get("ex_page_filter_hash") != _fkey:
+    st.session_state["ex_page"] = 0
+    st.session_state["ex_page_filter_hash"] = _fkey
+
+# --- Count + Pagination ---
+total = count_explorer_rows(
+    case_types=case_types, min_quality=min_q, max_quality=max_q,
+    start_date=start_date, end_date=end_date, languages=languages,
+)
+offset, page = paginated_controls(total_label="rows", key="ex_page", total_count=total)
 
 # --- Fetch data ---
 with st.spinner("Loading data..."):

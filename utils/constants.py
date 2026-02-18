@@ -123,9 +123,13 @@ def clean_language(val: str | None) -> str:
     return val.strip("'").strip()
 
 
-def quality_band(score: int | float | None) -> tuple[str, str]:
+def quality_band(score: int | float | str | None) -> tuple[str, str]:
     """Return (band_name, color) for a quality score."""
     if score is None:
+        return ("N/A", "#9e9e9e")
+    try:
+        score = float(score)
+    except (TypeError, ValueError):
         return ("N/A", "#9e9e9e")
     for band_name, (low, high, color) in QUALITY_BANDS.items():
         if low <= score <= high:
