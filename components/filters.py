@@ -115,3 +115,13 @@ def content_worthy_toggle(key: str = "content_worthy") -> bool:
 def has_quote_toggle(key: str = "has_quote") -> bool:
     """Checkbox to filter calls with quotes."""
     return st.checkbox("Has quote", key=key)
+
+
+def clear_filters(key_prefix: str) -> None:
+    """Render a 'Clear all filters' button that resets session state for the given prefix."""
+    clear_key = f"clear_filters_{key_prefix}"
+    if st.button("Clear all filters", key=clear_key, use_container_width=True):
+        for k in list(st.session_state.keys()):
+            if k.startswith(key_prefix) and k != clear_key:
+                del st.session_state[k]
+        st.rerun()

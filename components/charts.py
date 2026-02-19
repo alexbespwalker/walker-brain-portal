@@ -38,14 +38,28 @@ def trending_bar_chart(
     labels: list[str],
     values: list[int | float],
     title: str = "",
+    customdata: list | None = None,
 ) -> go.Figure:
-    """Horizontal bar chart for trending data. Sorted descending."""
+    """Horizontal bar chart for trending data. Sorted descending.
+
+    Args:
+        customdata: Optional list of raw values (one per label) stored as Plotly
+            customdata so click-event handlers can recover the raw value from the
+            humanized display label.
+    """
     if not labels or not values:
         return _empty_chart("No data")
-    # Sort descending
-    paired = sorted(zip(labels, values), key=lambda x: x[1])
-    labels_sorted = [p[0] for p in paired]
-    values_sorted = [p[1] for p in paired]
+    # Sort ascending (so highest appears at top of horizontal bar chart)
+    if customdata is not None:
+        paired = sorted(zip(labels, values, customdata), key=lambda x: x[1])
+        labels_sorted = [p[0] for p in paired]
+        values_sorted = [p[1] for p in paired]
+        customdata_sorted = [[p[2]] for p in paired]  # nested list for Plotly customdata
+    else:
+        paired = sorted(zip(labels, values), key=lambda x: x[1])
+        labels_sorted = [p[0] for p in paired]
+        values_sorted = [p[1] for p in paired]
+        customdata_sorted = None
 
     total = sum(values_sorted) or 1
     text_labels = [f"{v} ({v / total * 100:.0f}%)" for v in values_sorted]
@@ -53,7 +67,7 @@ def trending_bar_chart(
     colorway = PLOTLY_TEMPLATE["colorway"]
     bar_colors = [colorway[i % len(colorway)] for i in range(len(labels_sorted))]
 
-    fig = go.Figure(go.Bar(
+    bar = go.Bar(
         x=values_sorted,
         y=labels_sorted,
         orientation="h",
@@ -61,7 +75,11 @@ def trending_bar_chart(
         text=text_labels,
         textposition="outside",
         cliponaxis=False,
-    ))
+    )
+    if customdata_sorted is not None:
+        bar.customdata = customdata_sorted
+
+    fig = go.Figure(bar)
     return _apply_template(
         fig,
         title=title,

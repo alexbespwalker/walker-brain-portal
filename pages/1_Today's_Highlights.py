@@ -12,13 +12,18 @@ if not check_password():
 inject_theme()
 
 st.title(":bar_chart: Today's Highlights")
-st.caption("Curated content picks for the creative team.")
+_last_updated = get_last_updated()
+if _last_updated:
+    st.caption(f"Curated content picks for the creative team. · Data last updated: {_last_updated}")
+else:
+    st.caption("Curated content picks for the creative team.")
 
 from components.cards import metric_card, quote_card
 from components.charts import quality_histogram, volume_trend, case_type_pie, trending_bar_chart
 from utils.constants import humanize
 from utils.queries import (
     get_weekly_metric_counts, get_prior_period_metrics, fetch_quotes, get_daily_volume,
+    get_last_updated,
 )
 from utils.constants import quality_band
 from utils.database import query_table, get_supabase
@@ -104,7 +109,7 @@ with right:
     except Exception:
         st.caption("Objection data unavailable.")
 
-    # Trending case types — bar chart
+    # Trending case types — bar chart (click to drill into Call Search)
     try:
         rows_7d = (
             client.table("analysis_results")
@@ -121,12 +126,25 @@ with right:
                 ct_counts[ct] = ct_counts.get(ct, 0) + 1
         if ct_counts:
             sorted_ct = sorted(ct_counts.items(), key=lambda x: -x[1])[:6]
-            fig = trending_bar_chart(
-                [humanize(k) for k, _ in sorted_ct],
-                [v for _, v in sorted_ct],
-                title="Case Types",
-            )
-            st.plotly_chart(fig, use_container_width=True)
+            ct_raw = [k for k, _ in sorted_ct]
+            ct_display = [humanize(k) for k in ct_raw]
+            ct_values = [v for _, v in sorted_ct]
+            fig = trending_bar_chart(ct_display, ct_values, title="Case Types ↗ click to filter", customdata=ct_raw)
+            try:
+                ct_event = st.plotly_chart(
+                    fig, use_container_width=True,
+                    on_select="rerun", key="hl_case_types_chart",
+                )
+                if ct_event and ct_event.selection and ct_event.selection.points:
+                    pt = ct_event.selection.points[0]
+                    raw_ct = (pt.get("customdata") or [None])[0]
+                    if not raw_ct:
+                        raw_ct = pt.get("y")
+                    if raw_ct:
+                        st.session_state["cs_case"] = [raw_ct]
+                        st.switch_page("pages/2_Call_Search.py")
+            except Exception:
+                st.plotly_chart(fig, use_container_width=True)
         else:
             st.caption("No case type data this week.")
     except Exception:

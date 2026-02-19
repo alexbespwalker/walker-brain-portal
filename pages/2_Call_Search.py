@@ -17,11 +17,11 @@ st.caption("Filter, browse, and deep-dive into analyzed calls.")
 from components.filters import (
     text_search_filter, case_type_filter, quality_range_filter,
     date_range_filter, language_filter, emotional_tone_filter,
-    has_quote_toggle, content_worthy_toggle,
+    has_quote_toggle, content_worthy_toggle, clear_filters,
 )
 from components.cards import call_card, call_detail_panel, _render_chat_transcript
 from components.pagination import paginated_controls
-from utils.queries import search_calls, get_call_detail, get_transcript, count_calls
+from utils.queries import search_calls, get_call_detail, get_transcript, count_calls, get_last_updated
 from utils.export import download_csv
 
 # --- Jump-to support from Data Explorer ---
@@ -32,6 +32,9 @@ if jump_id:
 # --- Sidebar filters ---
 with st.sidebar:
     st.header("Filters")
+    _lu = get_last_updated()
+    if _lu:
+        st.caption(f"Updated: {_lu}")
     text = text_search_filter(key="cs_text")
     case_types = case_type_filter(key="cs_case")
     min_q, max_q = quality_range_filter(key="cs_quality")
@@ -40,6 +43,8 @@ with st.sidebar:
     tones = emotional_tone_filter(key="cs_tone")
     has_quote = has_quote_toggle(key="cs_quote")
     content_worthy = content_worthy_toggle(key="cs_content")
+    st.markdown("---")
+    clear_filters("cs")
 
 # --- Reset page when filters change ---
 _fkey = f"{text}|{case_types}|{min_q}|{max_q}|{start_date}|{end_date}|{languages}|{tones}|{has_quote}|{content_worthy}"

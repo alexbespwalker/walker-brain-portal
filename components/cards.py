@@ -122,6 +122,7 @@ def call_card(row: dict):
     quote = row.get("key_quote", "")
     tags = row.get("suggested_tags") or []
     sid = row.get("source_transcript_id", "")
+    case_value_cat = row.get("estimated_case_value_category", "") or ""
 
     band_name, band_color = quality_band(quality)
     tone_class = get_badge_class(tone)
@@ -137,6 +138,8 @@ def call_card(row: dict):
     with st.container(border=True):
         cols = st.columns([2, 1, 2, 1])
         cols[0].markdown(f"**{case_type}**")
+        if case_value_cat and not is_falsy_sentinel(case_value_cat):
+            cols[0].caption(f"Case value: {case_value_cat}")
         q_class = "wb-badge-error" if band_name in ("POOR", "NEEDS IMPROVEMENT") else \
                   "wb-badge-warning" if band_name == "ADEQUATE" else \
                   "wb-badge-success" if band_name in ("STRONG", "EXCEPTIONAL") else "wb-badge-info"
@@ -159,7 +162,7 @@ def call_card(row: dict):
         if summary:
             st.caption(summary[:200] + ("..." if len(summary) > 200 else ""))
         if quote:
-            st.markdown(f'> *"{quote[:150]}{"..." if len(quote) > 150 else ""}"*')
+            st.markdown(f'> *"{quote[:200]}{"..." if len(quote) > 200 else ""}"*')
         if tag_str:
             st.caption(f"Tags: {tag_str}")
 

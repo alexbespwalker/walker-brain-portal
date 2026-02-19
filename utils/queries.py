@@ -103,7 +103,8 @@ SEARCH_COLUMNS = (
     "source_transcript_id, case_type, quality_score, emotional_tone, "
     "outcome, analyzed_at, original_language, key_quote, summary, "
     "primary_topic, suggested_tags, content_generation_flag, "
-    "testimonial_candidate, testimonial_type, confidence_score"
+    "testimonial_candidate, testimonial_type, confidence_score, "
+    "estimated_case_value_category"
 )
 
 DETAIL_COLUMNS = (
@@ -463,6 +464,68 @@ def get_drift_alerts(limit: int = 10) -> list[dict]:
 def get_prompt_library() -> list[dict]:
     """Fetch all prompts."""
     return query_table("prompt_library", order="-created_at")
+
+
+# ---------------------------------------------------------------------------
+# Freshness + pipeline stats (for app.py billboard and page headers)
+# ---------------------------------------------------------------------------
+
+@st.cache_data(ttl=300)
+def get_last_updated() -> str | None:
+    """Return the most recent analyzed_at timestamp as a human-readable string."""
+    client = get_supabase()
+    rows = (
+        client.table("analysis_results")
+        .select("analyzed_at")
+        .order("analyzed_at", desc=True)
+        .limit(1)
+        .execute()
+        .data
+    )
+    if rows and rows[0].get("analyzed_at"):
+        from datetime import datetime, timezone
+        ts = rows[0]["analyzed_at"]
+        try:
+            dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+            hour = dt.hour % 12 or 12
+            am_pm = "AM" if dt.hour < 12 else "PM"
+            return f"{dt.strftime('%b')} {dt.day}, {dt.year} at {hour}:{dt.strftime('%M')} {am_pm} UTC"
+        except Exception:
+            return ts[:16]
+    return None
+
+
+@st.cache_data(ttl=600)
+def get_pipeline_stats() -> dict:
+    """Get aggregate stats for the app.py orientation billboard."""
+    client = get_supabase()
+    count_res = (
+        client.table("analysis_results")
+        .select("source_transcript_id", count="exact")
+        .execute()
+    )
+    total = count_res.count or 0
+
+    min_res = (
+        client.table("analysis_results")
+        .select("analyzed_at")
+        .order("analyzed_at")
+        .limit(1)
+        .execute()
+        .data
+    )
+    since = min_res[0]["analyzed_at"][:10] if min_res else None
+
+    status_res = (
+        client.table("system_status")
+        .select("system_active")
+        .limit(1)
+        .execute()
+        .data
+    )
+    is_active = status_res[0].get("system_active", False) if status_res else False
+
+    return {"total": total, "since": since, "active": is_active}
 
 
 # ---------------------------------------------------------------------------

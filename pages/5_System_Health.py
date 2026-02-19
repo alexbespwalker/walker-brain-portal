@@ -58,8 +58,15 @@ with st.spinner("Loading summary..."):
 
 styled_divider()
 
+if not st.session_state.get("admin_authenticated"):
+    st.markdown("---")
+    st.markdown("#### 🔐 Admin View")
+    st.caption(
+        "Enter the admin password to view cost tracking, quality distribution, "
+        "calibration data, and pipeline throughput."
+    )
+
 if not check_admin():
-    st.warning("Full dashboard requires admin access.")
     st.stop()
 
 from utils.database import query_table, query_df
@@ -145,9 +152,16 @@ with st.spinner("Loading quality analytics..."):
 
             if "confidence_score" in qdf.columns:
                 st.markdown("**Confidence Score Distribution**")
-                conf_df = qdf[qdf["confidence_score"].notna()]
+                conf_df = qdf[qdf["confidence_score"].notna()].copy()
                 if not conf_df.empty:
-                    st.bar_chart(conf_df["confidence_score"].value_counts().sort_index())
+                    import plotly.express as _px
+                    from components.charts import _apply_template
+                    conf_counts = conf_df["confidence_score"].value_counts().sort_index().reset_index()
+                    conf_counts.columns = ["confidence_score", "count"]
+                    fig_conf = _px.bar(conf_counts, x="confidence_score", y="count",
+                                       labels={"confidence_score": "Confidence Score", "count": "Count"})
+                    fig_conf = _apply_template(fig_conf, height=250, showlegend=False)
+                    st.plotly_chart(fig_conf, use_container_width=True)
         else:
             st.caption("No quality data available.")
     except Exception:

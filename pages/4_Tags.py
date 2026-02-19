@@ -58,6 +58,19 @@ def _show_fallback_tags():
 
     sorted_tags = sorted(tag_counts.items(), key=lambda x: -x[1])[:50]
 
+    # Tag search input
+    tag_search = st.text_input(
+        "Search tags",
+        key="tag_search_input",
+        placeholder="e.g. slip, process, attorney...",
+        label_visibility="collapsed",
+    )
+    if tag_search:
+        sorted_tags = [(t, c) for t, c in sorted_tags if tag_search.lower() in t.lower()]
+        if not sorted_tags:
+            st.caption(f"No tags matching \"{tag_search}\".")
+            return
+
     # Render clickable tag buttons in a column grid
     num_cols = 5
     tag_cols = st.columns(num_cols)
@@ -194,7 +207,7 @@ with st.spinner("Loading objection data..."):
                             f"({arrow}{delta} vs last week)"
                         )
                 else:
-                    st.info("Baseline week \u2014 prior period not yet available for comparison.")
+                    st.caption("*Trend comparison collecting \u2014 check back next week once a baseline week of data is available.*")
         else:
             from datetime import datetime, timedelta
             cutoff_7d = (datetime.utcnow() - timedelta(days=7)).isoformat()

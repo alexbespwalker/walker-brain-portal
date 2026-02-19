@@ -11,6 +11,7 @@ st.set_page_config(
 
 from utils.auth import check_password
 from utils.theme import inject_theme, styled_divider, COLORS, TYPOGRAPHY, SPACING, SHADOWS, BORDERS
+from utils.queries import get_pipeline_stats
 
 inject_theme()
 
@@ -45,6 +46,37 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# --- Stats billboard ---
+try:
+    _stats = get_pipeline_stats()
+    if _stats and _stats.get("total", 0) > 0:
+        from datetime import datetime
+        _since = ""
+        if _stats.get("since"):
+            try:
+                _d = datetime.strptime(_stats["since"][:10], "%Y-%m-%d")
+                _since = f"{_d.strftime('%b')} {_d.day}, {_d.year}"
+            except Exception:
+                _since = _stats["since"][:10]
+        _dot_color = COLORS["success"] if _stats.get("active") else COLORS["error"]
+        _status_text = "Pipeline active" if _stats.get("active") else "Pipeline paused"
+        _total = f"{_stats['total']:,}"
+        st.markdown(
+            f'<div style="display:flex;gap:20px;justify-content:center;'
+            f'margin:-8px auto 24px;flex-wrap:wrap;max-width:600px;">'
+            f'<span style="font-size:0.9rem;color:{COLORS["text_secondary"]};">'
+            f'<strong style="color:{COLORS["text_primary"]};">{_total}</strong> calls analyzed</span>'
+            f'<span style="color:{COLORS["text_hint"]};">·</span>'
+            f'<span style="font-size:0.9rem;color:{COLORS["text_secondary"]};">Since '
+            f'<strong style="color:{COLORS["text_primary"]};">{_since}</strong></span>'
+            f'<span style="color:{COLORS["text_hint"]};">·</span>'
+            f'<span style="font-size:0.9rem;color:{_dot_color};">&#9679; {_status_text}</span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+except Exception:
+    pass
+
 # --- Navigation cards ---
 NAV_ITEMS = [
     {
@@ -60,28 +92,28 @@ NAV_ITEMS = [
         "page": "pages/2_Call_Search.py",
     },
     {
-        "icon": "&#128203;",
-        "title": "Data Explorer",
-        "desc": "Toggle 116 extracted fields, export CSV, and review raw data.",
-        "page": "pages/3_Call_Data_Explorer.py",
-    },
-    {
         "icon": "&#128172;",
         "title": "Quote Bank",
-        "desc": "Search and copy quotes for social posts, ads, and landing pages.",
-        "page": "pages/4_Quote_Bank.py",
+        "desc": "Search, select, and export quotes for social posts, ads, and landing pages.",
+        "page": "pages/3_Quote_Bank.py",
     },
     {
         "icon": "&#127991;&#65039;",
         "title": "Tags & Objections",
         "desc": "Browse tag taxonomy and track objection category trends.",
-        "page": "pages/5_Tags.py",
+        "page": "pages/4_Tags.py",
     },
     {
         "icon": "&#9881;&#65039;",
         "title": "System Health",
         "desc": "Cost tracking, quality drift alerts, and pipeline metrics.",
-        "page": "pages/6_System_Health.py",
+        "page": "pages/5_System_Health.py",
+    },
+    {
+        "icon": "&#128203;",
+        "title": "Data Explorer",
+        "desc": "Toggle 116 extracted fields, export CSV, and review raw data.",
+        "page": "pages/7_Call_Data_Explorer.py",
     },
 ]
 
