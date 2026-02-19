@@ -288,9 +288,19 @@ input[data-testid="stTextInput"] {{
     background: {COLORS["surface"]};
     border-left: 3px solid {COLORS["primary"]};
     border-radius: {BORDERS["radius_md"]};
-    padding: {SPACING["lg"]};
+    padding: {SPACING["2xl"]};
     box-shadow: {SHADOWS["sm"]};
     margin-bottom: {SPACING["md"]};
+}}
+
+/* --- Badge pill row --- */
+.wb-pill-row {{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    margin-top: {SPACING["sm"]};
+    margin-bottom: {SPACING["xs"]};
 }}
 .wb-quote-text {{
     font-size: {TYPOGRAPHY["size"]["base"]};

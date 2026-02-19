@@ -34,6 +34,44 @@ def _empty_chart(message: str, height: int = 200) -> go.Figure:
     return _apply_template(fig, height=height)
 
 
+def trending_bar_chart(
+    labels: list[str],
+    values: list[int | float],
+    title: str = "",
+) -> go.Figure:
+    """Horizontal bar chart for trending data. Sorted descending."""
+    if not labels or not values:
+        return _empty_chart("No data")
+    # Sort descending
+    paired = sorted(zip(labels, values), key=lambda x: x[1])
+    labels_sorted = [p[0] for p in paired]
+    values_sorted = [p[1] for p in paired]
+
+    total = sum(values_sorted) or 1
+    text_labels = [f"{v} ({v / total * 100:.0f}%)" for v in values_sorted]
+
+    colorway = PLOTLY_TEMPLATE["colorway"]
+    bar_colors = [colorway[i % len(colorway)] for i in range(len(labels_sorted))]
+
+    fig = go.Figure(go.Bar(
+        x=values_sorted,
+        y=labels_sorted,
+        orientation="h",
+        marker_color=bar_colors,
+        text=text_labels,
+        textposition="outside",
+        cliponaxis=False,
+    ))
+    return _apply_template(
+        fig,
+        title=title,
+        xaxis_title="Count",
+        height=max(180, len(labels_sorted) * 32),
+        margin=dict(l=140, r=100, t=30 if title else 10, b=30),
+        showlegend=False,
+    )
+
+
 def quality_histogram(df: pd.DataFrame, column: str = "quality_score") -> go.Figure:
     """Quality score histogram with band overlays."""
     if df.empty or column not in df.columns:

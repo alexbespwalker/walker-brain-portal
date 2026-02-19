@@ -3,7 +3,10 @@
 import json
 from html import escape as _esc
 import streamlit as st
-from utils.constants import quality_band, clean_language, TESTIMONIAL_TYPE_LABELS
+from utils.constants import (
+    quality_band, clean_language, TESTIMONIAL_TYPE_LABELS,
+    humanize, format_case_value, get_badge_class, is_falsy_sentinel,
+)
 from utils.theme import COLORS, TYPOGRAPHY, SPACING, SHADOWS, BORDERS
 
 
@@ -31,8 +34,13 @@ def metric_card(label: str, value, delta=None, color: str | None = None):
         st.metric(label=label, value=value, delta=delta)
 
 
+def _badge_pill(text: str, css_class: str) -> str:
+    """Return HTML for a single badge pill."""
+    return f'<span class="wb-badge {css_class}">{_esc(text)}</span>'
+
+
 def quote_card(row: dict, show_copy: bool = True):
-    """Render a styled quote card with left accent border."""
+    """Render a styled quote card with left accent border and badge pills."""
     quote = row.get("key_quote", "")
     case_type = row.get("case_type", "")
     tone = row.get("emotional_tone", "")
@@ -43,7 +51,8 @@ def quote_card(row: dict, show_copy: bool = True):
     is_testimonial = row.get("testimonial_candidate", False)
     testimonial_type = row.get("testimonial_type", "")
 
-    _, band_color = quality_band(quality)
+    band_name, band_color = quality_band(quality)
+    tone_class = get_badge_class(tone)
 
     if isinstance(tags, str):
         try:
@@ -56,6 +65,22 @@ def quote_card(row: dict, show_copy: bool = True):
 
     sid = row.get("source_transcript_id", "")
     sid_short = sid[:12] if sid else ""
+
+    # Badge pills row
+    pills = []
+    if case_type:
+        pills.append(_badge_pill(case_type, "wb-badge-info"))
+    if tone:
+        pills.append(_badge_pill(tone, tone_class))
+    if quality is not None:
+        # Map quality band to badge class
+        q_class = "wb-badge-error" if band_name in ("POOR", "NEEDS IMPROVEMENT") else \
+                  "wb-badge-warning" if band_name == "ADEQUATE" else \
+                  "wb-badge-success" if band_name in ("STRONG", "EXCEPTIONAL") else "wb-badge-info"
+        pills.append(_badge_pill(f"Quality: {quality}", q_class))
+    if lang_short:
+        pills.append(_badge_pill(lang_short, "wb-badge-info"))
+    pills_html = f'<div class="wb-pill-row">{"".join(pills)}</div>' if pills else ""
 
     # Build meta line
     meta_parts = []
@@ -74,12 +99,7 @@ def quote_card(row: dict, show_copy: bool = True):
         f"""
         <div class="wb-quote-card">
             <div class="wb-quote-text">&ldquo;{_esc(quote)}&rdquo;</div>
-            <div class="wb-quote-meta">
-                {_esc(case_type)}
-                &nbsp;&middot;&nbsp; {_esc(tone)}
-                &nbsp;&middot;&nbsp; <span style="color:{band_color}; font-weight:600;">Quality: {quality}</span>
-                &nbsp;&middot;&nbsp; {_esc(lang_short)}
-            </div>
+            {pills_html}
             {"<div class='wb-quote-meta' style='margin-top:4px;'>" + meta_line + "</div>" if meta_line else ""}
         </div>
         """,
@@ -89,13 +109,11 @@ def quote_card(row: dict, show_copy: bool = True):
     if show_copy:
         from utils.export import format_quote_for_clipboard
         copy_text = format_quote_for_clipboard(quote, case_type, tone, quality, date)
-        with st.expander("Copy for brief", expanded=False):
-            st.text_area("", value=copy_text, height=80, label_visibility="collapsed",
-                         key=f"copy_{sid_short}_{hash(quote) % 10000}")
+        st.code(copy_text, language=None)
 
 
 def call_card(row: dict):
-    """Compact call card for search results."""
+    """Compact call card for search results with badge pills."""
     case_type = row.get("case_type", "")
     quality = row.get("quality_score")
     tone = row.get("emotional_tone", "")
@@ -105,7 +123,8 @@ def call_card(row: dict):
     tags = row.get("suggested_tags") or []
     sid = row.get("source_transcript_id", "")
 
-    _, band_color = quality_band(quality)
+    band_name, band_color = quality_band(quality)
+    tone_class = get_badge_class(tone)
 
     if isinstance(tags, str):
         try:
@@ -118,11 +137,17 @@ def call_card(row: dict):
     with st.container(border=True):
         cols = st.columns([2, 1, 2, 1])
         cols[0].markdown(f"**{case_type}**")
+        q_class = "wb-badge-error" if band_name in ("POOR", "NEEDS IMPROVEMENT") else \
+                  "wb-badge-warning" if band_name == "ADEQUATE" else \
+                  "wb-badge-success" if band_name in ("STRONG", "EXCEPTIONAL") else "wb-badge-info"
         cols[1].markdown(
-            f'<span style="color:{band_color}; font-weight:700;">Quality: {quality}</span>',
+            _badge_pill(f"Quality: {quality}", q_class),
             unsafe_allow_html=True,
         )
-        cols[2].caption(f"Tone: {tone}")
+        cols[2].markdown(
+            _badge_pill(humanize(tone) if tone else "\u2014", tone_class),
+            unsafe_allow_html=True,
+        )
         cols[3].caption(date)
 
         if sid:
@@ -173,7 +198,7 @@ def testimonial_card(row: dict, next_status: str | None = None):
 
 
 def _render_field(label: str, value, is_json: bool = False):
-    """Render a single field in call detail view."""
+    """Render a single field in call detail view. Filters falsy sentinels from lists."""
     if value is None:
         st.caption(f"**{label}:** \u2014")
         return
@@ -184,21 +209,92 @@ def _render_field(label: str, value, is_json: bool = False):
             except (json.JSONDecodeError, TypeError):
                 pass
         if isinstance(value, list):
+            # Filter out falsy sentinels
+            value = [item for item in value if not is_falsy_sentinel(item)]
+            if not value:
+                st.caption(f"**{label}:** \u2014")
+                return
             items = "\n".join(f"- {item}" for item in value)
             st.markdown(f"**{label}:**\n{items}")
         elif isinstance(value, dict):
             st.markdown(f"**{label}:**")
             for k, v in value.items():
-                st.caption(f"  {k}: {v}")
+                if not is_falsy_sentinel(v):
+                    st.caption(f"  {humanize(k)}: {v}")
         else:
             st.caption(f"**{label}:** {value}")
     else:
         st.caption(f"**{label}:** {value}")
 
 
+def _has_real_value(val) -> bool:
+    """Check if a field has a real (non-empty, non-sentinel) value."""
+    if val is None:
+        return False
+    if isinstance(val, str) and val.strip().lower() in ("", "none", "null", "n/a"):
+        return False
+    if isinstance(val, list) and len(val) == 0:
+        return False
+    return True
+
+
+def _render_chat_transcript(transcript: str):
+    """Render transcript as chat-style message blocks. Agent → assistant, Caller → user."""
+    import re
+    # Split on speaker labels like "Agent:", "Caller:", "Representative:", "Customer:"
+    pattern = re.compile(
+        r"((?:Agent|Representative|Rep|Operator|Receptionist)\s*:)",
+        re.IGNORECASE,
+    )
+    caller_pattern = re.compile(
+        r"((?:Caller|Customer|Client|Speaker\s*\d*)\s*:)",
+        re.IGNORECASE,
+    )
+
+    lines = transcript.split("\n")
+    current_role = None
+    current_text = []
+
+    def flush():
+        if current_role and current_text:
+            text = "\n".join(current_text).strip()
+            if text:
+                with st.chat_message(current_role):
+                    st.markdown(text)
+
+    for line in lines:
+        if pattern.match(line.strip()):
+            flush()
+            current_role = "assistant"
+            current_text = [pattern.sub("", line.strip(), count=1).strip()]
+        elif caller_pattern.match(line.strip()):
+            flush()
+            current_role = "user"
+            current_text = [caller_pattern.sub("", line.strip(), count=1).strip()]
+        elif current_role:
+            current_text.append(line)
+        else:
+            # Before any speaker label, treat as system/context
+            if line.strip():
+                st.caption(line.strip())
+
+    flush()
+
+
 def call_detail_panel(row: dict):
     """Expanded detail panel for a call. Shows all fields grouped into tabs."""
     from utils.theme import styled_header
+
+    # --- Call ID at top ---
+    sid = row.get("source_transcript_id", "")
+    if sid:
+        st.markdown(
+            f'<code style="font-family:{TYPOGRAPHY["font_family_mono"]}; '
+            f'font-size:{TYPOGRAPHY["size"]["sm"]}; padding:4px 8px; '
+            f'background:{COLORS["surface_variant"]}; border-radius:4px;">'
+            f'Call ID: {_esc(sid)}</code>',
+            unsafe_allow_html=True,
+        )
 
     tab_overview, tab_case, tab_language, tab_content, tab_dev = st.tabs(
         ["Overview", "Case", "Language", "Content", "Developer"]
@@ -217,7 +313,7 @@ def call_detail_panel(row: dict):
         if qs and isinstance(qs, dict):
             cols = st.columns(4)
             for i, (k, v) in enumerate(qs.items()):
-                cols[i % 4].metric(k.replace("_", " ").title(), v if v is not None else "\u2014")
+                cols[i % 4].metric(humanize(k), v if v is not None else "\u2014")
         else:
             st.caption("No sub-score data available.")
 
@@ -270,30 +366,24 @@ def call_detail_panel(row: dict):
         ca_cols[0].caption(f"**Liability Clarity:** {row.get('liability_clarity', '\u2014')}")
         ca_cols[1].caption(f"**Injury Severity:** {row.get('injury_severity', '\u2014')}")
         ca_cols[2].caption(f"**Documentation:** {row.get('documentation_quality', '\u2014')}")
-        low = row.get("estimated_case_value_low")
-        high = row.get("estimated_case_value_high")
-        cat = row.get("estimated_case_value_category", "")
-        if low is not None or high is not None:
-            try:
-                val_str = f"${float(low):,.0f}" if low is not None else "?"
-                val_str += f" \u2014 ${float(high):,.0f}" if high is not None else ""
-            except (TypeError, ValueError):
-                val_str = "N/A"
-            if cat:
-                st.markdown(f"**Estimated Value:** {val_str} ({cat})")
-            else:
-                st.markdown(f"**Estimated Value:** {val_str}")
+        val_str = format_case_value(
+            row.get("estimated_case_value_low"),
+            row.get("estimated_case_value_high"),
+            row.get("estimated_case_value_category", ""),
+        )
+        if val_str != "\u2014":
+            st.markdown(f"**Estimated Value:** {val_str}")
 
         # Objection Taxonomy (10A) — conditional
         obj_fields = [
             "objection_categories", "mid_call_dropout_moment", "conversion_driver",
             "drop_off_reason", "agent_intervention_that_worked", "moment_that_closed",
         ]
-        has_10a = any(row.get(f) is not None for f in obj_fields)
+        has_10a = any(_has_real_value(row.get(f)) for f in obj_fields)
         if has_10a:
             styled_header("Objection Taxonomy")
             for f in obj_fields:
-                _render_field(f.replace("_", " ").title(), row.get(f),
+                _render_field(humanize(f), row.get(f),
                              is_json=f in ["objection_categories"])
         else:
             st.caption("No objection taxonomy data available.")
@@ -306,7 +396,7 @@ def call_detail_panel(row: dict):
                   "colloquialisms", "cultural_markers", "family_references",
                   "verbatim_customer_language"]:
             _render_field(
-                f.replace("_", " ").title(), row.get(f),
+                humanize(f), row.get(f),
                 is_json=f in ["colloquialisms", "cultural_markers", "family_references",
                               "verbatim_customer_language"],
             )
@@ -317,11 +407,11 @@ def call_detail_panel(row: dict):
             "handoff_wait_time_mentioned", "attorney_sentiment",
             "attorney_rejection_reason",
         ]
-        has_10c = any(row.get(f) is not None for f in cx_fields)
+        has_10c = any(_has_real_value(row.get(f)) for f in cx_fields)
         if has_10c:
             styled_header("CX Intelligence")
             for f in cx_fields:
-                _render_field(f.replace("_", " ").title(), row.get(f),
+                _render_field(humanize(f), row.get(f),
                              is_json=f in ["questions_repeated_by_attorney"])
         else:
             st.caption("No CX intelligence data available.")
@@ -340,12 +430,12 @@ def call_detail_panel(row: dict):
             "process_confusion_points", "other_brands_mentioned",
             "repeated_questions_from_caller",
         }
-        has_10d = any(row.get(f) is not None for f in cm_fields)
+        has_10d = any(_has_real_value(row.get(f)) for f in cm_fields)
         if has_10d:
             styled_header("Content Mining")
             for f in cm_fields:
-                if row.get(f) is not None:
-                    _render_field(f.replace("_", " ").title(), row.get(f),
+                if _has_real_value(row.get(f)):
+                    _render_field(humanize(f), row.get(f),
                                  is_json=f in cm_json_fields)
         else:
             st.caption("No content mining data available.")

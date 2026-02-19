@@ -16,9 +16,11 @@ st.caption("Browse the tag taxonomy and explore objection patterns.")
 
 from utils.database import get_supabase, query_table
 from components.charts import objection_bar
+from components.cards import call_card
 
-def _show_fallback_tags():
-    """Mine tags from analysis_results when master_taxonomy is empty/missing."""
+
+def _get_tag_counts() -> dict[str, int]:
+    """Mine tags from analysis_results. Returns {tag: count} sorted by count desc."""
     try:
         _client = get_supabase()
         rows = (
@@ -39,37 +41,61 @@ def _show_fallback_tags():
                     tags = []
             if isinstance(tags, list):
                 for tag in tags:
-                    if isinstance(tag, str):
+                    if isinstance(tag, str) and tag.strip():
                         tag_counts[tag] = tag_counts.get(tag, 0) + 1
-
-        if tag_counts:
-            from html import escape as _esc
-            sorted_tags = sorted(tag_counts.items(), key=lambda x: -x[1])
-
-            def _tag_style(count: int) -> str:
-                if count > 100:
-                    return "font-size:0.92rem; font-weight:700;"
-                if count > 50:
-                    return "font-size:0.85rem;"
-                if count > 20:
-                    return "font-size:0.78rem;"
-                return "font-size:0.72rem;"
-
-            badges_html = (
-                '<div style="display:flex; flex-wrap:wrap; gap:4px; max-width:100%;">'
-                + "".join(
-                    f'<span class="wb-badge wb-badge-info" style="margin:2px;'
-                    f'{_tag_style(count)}">'
-                    f'{_esc(tag)} <b>{count}</b></span>'
-                    for tag, count in sorted_tags[:50]
-                )
-                + '</div>'
-            )
-            st.markdown(badges_html, unsafe_allow_html=True)
-        else:
-            st.caption("No tag data available yet.")
+        return tag_counts
     except Exception:
-        st.caption("Tag data unavailable.")
+        return {}
+
+
+def _show_fallback_tags():
+    """Render interactive tag buttons from analysis_results when master_taxonomy is empty."""
+    tag_counts = _get_tag_counts()
+
+    if not tag_counts:
+        st.caption("No tag data available yet.")
+        return
+
+    sorted_tags = sorted(tag_counts.items(), key=lambda x: -x[1])[:50]
+
+    # Render clickable tag buttons in a column grid
+    num_cols = 5
+    tag_cols = st.columns(num_cols)
+    for idx, (tag, count) in enumerate(sorted_tags):
+        with tag_cols[idx % num_cols]:
+            if st.button(f"{tag} ({count})", key=f"tag_btn_{tag}", use_container_width=True):
+                st.session_state["tag_filter"] = tag
+
+    # Show filtered results if a tag is selected
+    active_tag = st.session_state.get("tag_filter")
+    if active_tag:
+        styled_divider()
+        styled_header(f"Calls tagged: {active_tag}")
+        if st.button("Clear filter", key="clear_tag_filter"):
+            del st.session_state["tag_filter"]
+            st.rerun()
+        try:
+            _client = get_supabase()
+            tagged_rows = (
+                _client.table("analysis_results")
+                .select(
+                    "source_transcript_id, case_type, quality_score, emotional_tone, "
+                    "analyzed_at, key_quote, summary, suggested_tags"
+                )
+                .contains("suggested_tags", json.dumps([active_tag]))
+                .order("quality_score", desc=True)
+                .limit(20)
+                .execute()
+                .data
+            )
+            if tagged_rows:
+                st.markdown(f"**{len(tagged_rows)} calls** with tag *{active_tag}*")
+                for row in tagged_rows:
+                    call_card(row)
+            else:
+                st.caption("No calls found with this tag.")
+        except Exception:
+            st.caption("Could not load tagged calls.")
 
 
 # --- Section 1: Tag Browser ---

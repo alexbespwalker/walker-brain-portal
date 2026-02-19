@@ -15,7 +15,8 @@ st.title(":bar_chart: Today's Highlights")
 st.caption("Curated content picks for the creative team.")
 
 from components.cards import metric_card, quote_card
-from components.charts import quality_histogram, volume_trend, case_type_pie
+from components.charts import quality_histogram, volume_trend, case_type_pie, trending_bar_chart
+from utils.constants import humanize
 from utils.queries import (
     get_weekly_metric_counts, get_prior_period_metrics, fetch_quotes, get_daily_volume,
 )
@@ -65,12 +66,11 @@ with left:
 with right:
     styled_header("Trending This Week")
 
-    # Top objection category (from analysis_results.objection_categories)
-    try:
-        from datetime import datetime, timedelta
-        cutoff_7d = (datetime.utcnow() - timedelta(days=7)).isoformat()
-        cutoff_14d = (datetime.utcnow() - timedelta(days=14)).isoformat()
+    from datetime import datetime, timedelta
+    cutoff_7d = (datetime.utcnow() - timedelta(days=7)).isoformat()
 
+    # Top objection categories — bar chart
+    try:
         rows = (
             client.table("analysis_results")
             .select("objection_categories")
@@ -89,17 +89,22 @@ with right:
                     cats = []
             if isinstance(cats, list):
                 for c in cats:
-                    if isinstance(c, str) and c.strip() and c.lower() != "undefined":
+                    if isinstance(c, str) and c.strip() and c.lower() not in ("undefined", "none", "null", "n/a"):
                         obj_counts[c] = obj_counts.get(c, 0) + 1
         if obj_counts:
-            top_obj = max(obj_counts, key=obj_counts.get)
-            st.markdown(f"**Top objection:** {top_obj.replace('_', ' ').title()} ({obj_counts[top_obj]} calls)")
+            sorted_obj = sorted(obj_counts.items(), key=lambda x: -x[1])[:8]
+            fig = trending_bar_chart(
+                [humanize(k) for k, _ in sorted_obj],
+                [v for _, v in sorted_obj],
+                title="Top Objections",
+            )
+            st.plotly_chart(fig, use_container_width=True)
         else:
             st.caption("No objection data this week.")
     except Exception:
         st.caption("Objection data unavailable.")
 
-    # Trending case types
+    # Trending case types — bar chart
     try:
         rows_7d = (
             client.table("analysis_results")
@@ -115,16 +120,19 @@ with right:
             if ct:
                 ct_counts[ct] = ct_counts.get(ct, 0) + 1
         if ct_counts:
-            top_3 = sorted(ct_counts.items(), key=lambda x: -x[1])[:3]
-            st.markdown("**Top case types (7d):**")
-            for ct, count in top_3:
-                st.caption(f"  {ct}: {count}")
+            sorted_ct = sorted(ct_counts.items(), key=lambda x: -x[1])[:6]
+            fig = trending_bar_chart(
+                [humanize(k) for k, _ in sorted_ct],
+                [v for _, v in sorted_ct],
+                title="Case Types",
+            )
+            st.plotly_chart(fig, use_container_width=True)
         else:
             st.caption("No case type data this week.")
     except Exception:
         st.caption("Case type data unavailable.")
 
-    # Testimonial types
+    # Testimonial types — bar chart
     try:
         testimonials = (
             client.table("analysis_results")
@@ -141,16 +149,19 @@ with right:
                 tt_counts[tt] = tt_counts.get(tt, 0) + 1
         if tt_counts:
             from utils.constants import TESTIMONIAL_TYPE_LABELS
-            st.markdown("**Testimonial candidates (7d):**")
-            for tt, count in tt_counts.items():
-                tt_label = TESTIMONIAL_TYPE_LABELS.get(tt, tt)
-                st.caption(f"  {tt_label}: {count}")
+            sorted_tt = sorted(tt_counts.items(), key=lambda x: -x[1])
+            fig = trending_bar_chart(
+                [TESTIMONIAL_TYPE_LABELS.get(k, k) for k, _ in sorted_tt],
+                [v for _, v in sorted_tt],
+                title="Testimonial Candidates",
+            )
+            st.plotly_chart(fig, use_container_width=True)
         else:
             st.caption("No testimonial candidates this week.")
     except Exception:
         st.caption("Testimonial data unavailable.")
 
-    # Top FAQ signal (from repeated_questions_from_caller)
+    # Top FAQ signals — bar chart
     try:
         faq_rows = (
             client.table("analysis_results")
@@ -170,11 +181,16 @@ with right:
                     qs = []
             if isinstance(qs, list):
                 for q in qs:
-                    if isinstance(q, str):
+                    if isinstance(q, str) and q.strip():
                         faq_counts[q] = faq_counts.get(q, 0) + 1
         if faq_counts:
-            top_faq = max(faq_counts, key=faq_counts.get)
-            st.markdown(f"**Top FAQ signal:** \"{top_faq}\" ({faq_counts[top_faq]})")
+            sorted_faq = sorted(faq_counts.items(), key=lambda x: -x[1])[:6]
+            fig = trending_bar_chart(
+                [k for k, _ in sorted_faq],
+                [v for _, v in sorted_faq],
+                title="Top FAQ Signals",
+            )
+            st.plotly_chart(fig, use_container_width=True)
         else:
             st.caption("No FAQ signals this week.")
     except Exception:

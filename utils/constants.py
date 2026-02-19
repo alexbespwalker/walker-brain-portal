@@ -116,6 +116,77 @@ TESTIMONIAL_TYPE_LABELS = {
 }
 
 
+TONE_BADGE_MAP: dict[str, str] = {
+    # Red — distressed/negative
+    "distressed": "wb-badge-error",
+    "angry": "wb-badge-error",
+    "fearful": "wb-badge-error",
+    "frustrated": "wb-badge-error",
+    # Amber — uncertain/mixed
+    "anxious": "wb-badge-warning",
+    "confused": "wb-badge-warning",
+    "skeptical": "wb-badge-warning",
+    # Green — positive
+    "hopeful": "wb-badge-success",
+    "grateful": "wb-badge-success",
+    "relieved": "wb-badge-success",
+    # Blue — neutral
+    "neutral": "wb-badge-info",
+    "calm": "wb-badge-info",
+    "neutral_calm": "wb-badge-info",
+}
+
+# Falsy sentinel values to filter out of list displays
+_FALSY_SENTINELS = {False, None, "", "none", "null", "n/a", "false", "None", "N/A"}
+
+
+def humanize(snake_str: str) -> str:
+    """Convert snake_case to Title Case. 'snake_case' → 'Snake Case'."""
+    return snake_str.replace("_", " ").title()
+
+
+def format_case_value(
+    low: float | int | None,
+    high: float | int | None,
+    category: str | None = None,
+) -> str:
+    """Format estimated case value range as '$200k – $500k (High)'. Returns '—' if both None."""
+    if low is None and high is None:
+        return "\u2014"
+    parts = []
+    try:
+        if low is not None:
+            v = float(low)
+            parts.append(f"${v / 1000:.0f}k" if v >= 1000 else f"${v:,.0f}")
+        else:
+            parts.append("?")
+        if high is not None:
+            v = float(high)
+            parts.append(f"${v / 1000:.0f}k" if v >= 1000 else f"${v:,.0f}")
+    except (TypeError, ValueError):
+        return "\u2014"
+    result = " \u2013 ".join(parts)
+    if category:
+        result += f" ({category})"
+    return result
+
+
+def get_badge_class(tone: str | None) -> str:
+    """Return the CSS class for an emotional tone badge pill."""
+    if not tone:
+        return "wb-badge-info"
+    return TONE_BADGE_MAP.get(tone.lower().strip(), "wb-badge-info")
+
+
+def is_falsy_sentinel(value) -> bool:
+    """Return True if value is a falsy sentinel that should be hidden from display."""
+    if value in _FALSY_SENTINELS:
+        return True
+    if isinstance(value, str) and value.strip().lower() in _FALSY_SENTINELS:
+        return True
+    return False
+
+
 def clean_language(val: str | None) -> str:
     """Strip wrapping single-quotes and whitespace from language values."""
     if not val:

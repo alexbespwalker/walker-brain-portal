@@ -17,11 +17,11 @@ st.caption("Explore all extracted fields. Toggle column groups to customize your
 from components.filters import (
     case_type_filter, quality_range_filter, date_range_filter, language_filter,
 )
-from components.cards import call_detail_panel
+from components.cards import call_detail_panel, _render_chat_transcript
 from components.pagination import paginated_controls
 from utils.queries import fetch_explorer_data, get_call_detail, get_transcript, count_explorer_rows
 from utils.export import download_csv
-from utils.constants import COLUMN_GROUPS
+from utils.constants import COLUMN_GROUPS, humanize
 
 # --- Sidebar ---
 with st.sidebar:
@@ -109,6 +109,12 @@ else:
             )
         )
 
+    # Truncate source_transcript_id to 8 chars
+    if "source_transcript_id" in display_df.columns:
+        display_df["source_transcript_id"] = display_df["source_transcript_id"].apply(
+            lambda x: (x[:8] + "\u2026") if isinstance(x, str) and len(x) > 8 else x
+        )
+
     # Pretty-print quality_sub_scores as compact readable string
     if "quality_sub_scores" in display_df.columns:
         def _fmt_sub_scores(val):
@@ -137,9 +143,12 @@ else:
             display_df["analyzed_at"], errors="coerce"
         ).dt.strftime("%b %d, %Y %I:%M %p")
 
+    # Humanize column headers
+    display_df = display_df.rename(columns=humanize)
+
     col_config = {}
-    if "quality_sub_scores" in display_df.columns:
-        col_config["quality_sub_scores"] = st.column_config.TextColumn(
+    if "Quality Sub Scores" in display_df.columns:
+        col_config["Quality Sub Scores"] = st.column_config.TextColumn(
             "Quality Sub-Scores", width="large",
         )
     st.dataframe(
@@ -157,12 +166,17 @@ else:
         selected_id = st.selectbox(
             "Select call",
             options=df["source_transcript_id"].tolist(),
-            format_func=lambda x: (x or "unknown")[:16] + "...",
+            format_func=lambda x: (x or "unknown")[:8] + "\u2026",
             key="ex_select_call",
         )
 
         if selected_id:
-            with st.expander(f"Full detail: {selected_id[:16]}...", expanded=True):
+            # "Open in Call Search" navigation button
+            if st.button("Open in Call Search", key=f"ex_nav_{selected_id}"):
+                st.session_state["jump_to_call_id"] = selected_id
+                st.switch_page("pages/2_Call_Search.py")
+
+            with st.expander(f"Full detail: {selected_id[:8]}\u2026", expanded=True):
                 detail = get_call_detail(selected_id)
                 if detail:
                     call_detail_panel(detail)
@@ -170,12 +184,8 @@ else:
                     if st.button("Load transcript", key=f"ex_tx_{selected_id}"):
                         transcript = get_transcript(selected_id)
                         if transcript:
-                            st.text_area(
-                                "Full Transcript",
-                                value=transcript,
-                                height=400,
-                                key=f"ex_tx_area_{selected_id}",
-                            )
+                            _render_chat_transcript(transcript)
+                            st.code(transcript, language=None)
                         else:
                             st.caption("Transcript not available.")
                 else:

@@ -19,10 +19,15 @@ from components.filters import (
     date_range_filter, language_filter, emotional_tone_filter,
     has_quote_toggle, content_worthy_toggle,
 )
-from components.cards import call_card, call_detail_panel
+from components.cards import call_card, call_detail_panel, _render_chat_transcript
 from components.pagination import paginated_controls
 from utils.queries import search_calls, get_call_detail, get_transcript, count_calls
 from utils.export import download_csv
+
+# --- Jump-to support from Data Explorer ---
+jump_id = st.session_state.pop("jump_to_call_id", None)
+if jump_id:
+    st.info(f"Jumped to call: `{jump_id[:8]}...`")
 
 # --- Sidebar filters ---
 with st.sidebar:
@@ -84,9 +89,10 @@ else:
     # Render each result
     for row in results:
         sid = row.get("source_transcript_id", "")
+        sid_short = sid[:8] if sid else ""
         call_card(row)
 
-        with st.expander(f"Full Analysis \u2014 {row.get('case_type', '')} ({row.get('analyzed_at', '')[:10]})"):
+        with st.expander(f"Details: {row.get('case_type', '')} \u2014 {sid_short}"):
             detail = get_call_detail(sid)
             if detail:
                 styled_header("Summary")
@@ -106,12 +112,9 @@ else:
                 if st.button(f"Load transcript", key=f"tx_{sid}"):
                     transcript = get_transcript(sid)
                     if transcript:
-                        st.text_area(
-                            "Full Transcript",
-                            value=transcript,
-                            height=400,
-                            key=f"tx_area_{sid}",
-                        )
+                        styled_header("Transcript")
+                        _render_chat_transcript(transcript)
+                        st.code(transcript, language=None)
                     else:
                         st.caption("Transcript not available.")
             else:

@@ -93,7 +93,6 @@ for i, item in enumerate(NAV_ITEMS):
                 f"""
                 <div class="wb-nav-card" style="border:none; box-shadow:none;">
                     <div class="wb-nav-icon">{item["icon"]}</div>
-                    <div class="wb-nav-title">{item["title"]}</div>
                     <div class="wb-nav-desc">{item["desc"]}</div>
                 </div>
                 """,
