@@ -63,7 +63,7 @@ with left:
     top_quotes = fetch_quotes(min_quality=0, max_quality=100, limit=5, start_date=week_cutoff)
     if top_quotes:
         for row in top_quotes:
-            quote_card(row, show_copy=True)
+            quote_card(row, show_copy=False)
     else:
         st.caption("No quote data available yet.")
 

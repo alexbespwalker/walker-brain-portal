@@ -9,7 +9,7 @@ if not check_password():
 
 inject_theme()
 
-st.title("Testimonial Pipeline")
+st.title(":star: Testimonial Pipeline")
 st.caption("Track testimonial candidates from flagged through published.")
 
 st.info("93 testimonials ready for review. Content generation pipeline launches next sprint.")
@@ -63,7 +63,7 @@ for item in all_items:
 cols = st.columns(len(KANBAN_STATUSES))
 for i, status in enumerate(KANBAN_STATUSES):
     items = by_status[status]
-    color = TESTIMONIAL_STATUS_COLORS.get(status, "#9e9e9e")
+    color = TESTIMONIAL_STATUS_COLORS.get(status, "#6B7280")
     with cols[i]:
         st.markdown(
             f'<div class="wb-kanban-header" style="background:{color}20; color:{color};">'

@@ -6,6 +6,7 @@ import streamlit as st
 from utils.auth import check_password
 from utils.theme import inject_theme, COLORS, TYPOGRAPHY, SPACING, SHADOWS, BORDERS
 from utils.database import query_table
+from utils.constants import CONTENT_TYPE_COLORS, INTENT_COLORS, FUNNEL_COLORS
 from components.pagination import paginated_controls
 
 if not check_password():
@@ -22,26 +23,6 @@ CONTENT_TYPE_LABELS = {
     "social_hook": "Social Hook",
     "case_study_brief": "Case Study Brief",
     "testimonial_angle": "Testimonial Angle",
-}
-
-CONTENT_TYPE_COLORS = {
-    "educational_explainer": "#1565c0",
-    "social_hook": "#7b1fa2",
-    "case_study_brief": "#ef6c00",
-    "testimonial_angle": "#2e7d32",
-}
-
-INTENT_COLORS = {
-    "Educate": "#1565c0",
-    "Empathize": "#7b1fa2",
-    "Empower": "#2e7d32",
-    "Activate": "#ef6c00",
-}
-
-FUNNEL_COLORS = {
-    "Problem Aware": "#d32f2f",
-    "Solution Aware": "#f57c00",
-    "Service Aware": "#388e3c",
 }
 
 STATUS_OPTIONS = ["pending_review", "approved"]
@@ -90,10 +71,10 @@ def angle_card(row: dict, content: dict):
     funnel_hint = content.get("funnel_stage_hint", "")
 
     ct_label = CONTENT_TYPE_LABELS.get(content_type, content_type.replace("_", " ").title())
-    ct_color = CONTENT_TYPE_COLORS.get(content_type, "#757575")
-    intent_color = INTENT_COLORS.get(content_intent, "#757575")
-    funnel_color = FUNNEL_COLORS.get(funnel_hint, "#757575")
-    status_color = "#2e7d32" if status == "approved" else "#f57c00"
+    ct_color = CONTENT_TYPE_COLORS.get(content_type, COLORS["text_hint"])
+    intent_color = INTENT_COLORS.get(content_intent, COLORS["text_hint"])
+    funnel_color = FUNNEL_COLORS.get(funnel_hint, COLORS["text_hint"])
+    status_color = COLORS["success"] if status == "approved" else COLORS["warning"]
 
     # Badge row
     badges_html = _badge(ct_label, ct_color)
@@ -103,9 +84,9 @@ def angle_card(row: dict, content: dict):
         badges_html += _badge(funnel_hint, funnel_color)
     badges_html += _badge(status.replace("_", " ").title(), status_color)
     if injury_type:
-        badges_html += _badge(injury_type, "#546e7a")
+        badges_html += _badge(injury_type, COLORS["text_secondary"])
     if quality is not None:
-        q_color = "#388e3c" if quality >= 75 else "#f57c00" if quality >= 60 else "#d32f2f"
+        q_color = COLORS["success"] if quality >= 75 else COLORS["warning"] if quality >= 60 else COLORS["error"]
         badges_html += _badge(f"Q: {quality}", q_color)
 
     # Quotes HTML
@@ -137,7 +118,7 @@ def angle_card(row: dict, content: dict):
                 )
         if arc_parts:
             arc_html = (
-                f'<div style="margin-top:10px; padding:8px 12px; background:rgba(0,0,0,0.03); '
+                f'<div style="margin-top:10px; padding:8px 12px; background:{COLORS["surface_elevated"]}; '
                 f'border-radius:8px; border-left:3px solid {ct_color};">'
                 f'<div style="font-size:0.78rem; font-weight:600; color:{COLORS["text_secondary"]}; '
                 f'margin-bottom:4px;">EMOTIONAL ARC</div>'
@@ -167,7 +148,7 @@ def angle_card(row: dict, content: dict):
 
     # Full card
     st.markdown(
-        f'<div style="border:1px solid {BORDERS["color"]}; border-radius:{BORDERS["radius"]}; '
+        f'<div style="border:1px solid {COLORS["border"]}; border-radius:{BORDERS["radius_md"]}; '
         f'padding:16px 20px; margin-bottom:12px; border-left:4px solid {ct_color}; '
         f'background:{COLORS["surface"]}; box-shadow:{SHADOWS["sm"]};">'
         f'<div style="margin-bottom:8px;">{badges_html}</div>'
@@ -291,27 +272,35 @@ if total == 0:
     st.info("No creative angles found. Run WF 20 manually from n8n to generate the first batch.")
 else:
     # Summary metrics
-    m_cols = st.columns(4)
-    m_cols[0].metric("Total Angles", total)
+    from components.cards import metric_card
 
     pending = sum(1 for r in filtered if r.get("status") == "pending_review")
     approved = sum(1 for r in filtered if r.get("status") == "approved")
-    m_cols[1].metric("Pending Review", pending)
-    m_cols[2].metric("Approved", approved)
 
     # Content type breakdown
     ct_counts = {}
     for r in filtered:
         ct = r.get("content_type", "other")
         ct_counts[ct] = ct_counts.get(ct, 0) + 1
+
+    m_cols = st.columns(4)
+    with m_cols[0]:
+        metric_card("Total Angles", total, color=COLORS["primary"])
+    with m_cols[1]:
+        metric_card("Pending Review", pending, color=COLORS["warning"])
+    with m_cols[2]:
+        metric_card("Approved", approved, color=COLORS["success"])
+    with m_cols[3]:
+        metric_card("Types", len(ct_counts), color=COLORS["info"])
+
     ct_summary = ", ".join(
         f"{CONTENT_TYPE_LABELS.get(k, k)}: {v}"
         for k, v in sorted(ct_counts.items(), key=lambda x: -x[1])
     )
-    m_cols[3].metric("Types", len(ct_counts))
     st.caption(ct_summary)
 
-    st.markdown("---")
+    from utils.theme import styled_divider
+    styled_divider()
 
     # Paginate
     page_size = 20

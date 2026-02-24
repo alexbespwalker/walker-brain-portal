@@ -25,7 +25,7 @@ def metric_card(label: str, value, delta=None, color: str | None = None):
         st.markdown(
             f'<div class="wb-metric-card" style="border-left: 3px solid {color};">'
             f'<div class="wb-metric-label" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{label}</div>'
-            f'<div class="wb-metric-value" style="color:{color};">{value}</div>'
+            f'<div class="wb-metric-value" style="color:{color}; font-family:{TYPOGRAPHY["font_family_display"]};">{value}</div>'
             f"{delta_html}"
             f"</div>",
             unsafe_allow_html=True,
@@ -109,7 +109,8 @@ def quote_card(row: dict, show_copy: bool = True):
     if show_copy:
         from utils.export import format_quote_for_clipboard
         copy_text = format_quote_for_clipboard(quote, case_type, tone, quality, date)
-        st.code(copy_text, language=None)
+        with st.expander("Copy text", expanded=False):
+            st.code(copy_text, language=None)
 
 
 def call_card(row: dict):
@@ -155,7 +156,7 @@ def call_card(row: dict):
 
         if sid:
             st.markdown(
-                f'<code style="font-size:{TYPOGRAPHY["size"]["xs"]}; color:{COLORS["neutral"][500]};">{_esc(sid[:12])}</code>',
+                f'<code style="font-size:{TYPOGRAPHY["size"]["xs"]}; color:{COLORS["text_hint"]};">{_esc(sid[:12])}</code>',
                 unsafe_allow_html=True,
             )
 

@@ -1,24 +1,24 @@
 """Constants for Walker Brain Portal."""
 
 QUALITY_BANDS = {
-    "POOR": (0, 29, "#d32f2f"),
-    "NEEDS IMPROVEMENT": (30, 59, "#f57c00"),
-    "ADEQUATE": (60, 74, "#f9a825"),
-    "STRONG": (75, 89, "#388e3c"),
-    "EXCEPTIONAL": (90, 100, "#1565c0"),
+    "POOR": (0, 29, "#E17055"),
+    "NEEDS IMPROVEMENT": (30, 59, "#FDCB6E"),
+    "ADEQUATE": (60, 74, "#F9CA24"),
+    "STRONG": (75, 89, "#00B894"),
+    "EXCEPTIONAL": (90, 100, "#D4A03C"),
 }
 
 CASE_TYPE_COLORS = {
-    "auto-accident": "#1f77b4",
-    "MVA": "#1f77b4",
-    "slip-and-fall": "#ff7f0e",
-    "workers-comp": "#2ca02c",
-    "premises-liability": "#d62728",
-    "dog-bite": "#9467bd",
-    "medical-malpractice": "#8c564b",
-    "product-liability": "#e377c2",
-    "wrongful-death": "#7f7f7f",
-    "other": "#bcbd22",
+    "auto-accident": "#D4A03C",
+    "MVA": "#D4A03C",
+    "slip-and-fall": "#E17055",
+    "workers-comp": "#00B894",
+    "premises-liability": "#6C5CE7",
+    "dog-bite": "#A29BFE",
+    "medical-malpractice": "#FD79A8",
+    "product-liability": "#FDCB6E",
+    "wrongful-death": "#74B9FF",
+    "other": "#9CA3B4",
 }
 
 OBJECTION_CATEGORIES = [
@@ -42,12 +42,12 @@ TESTIMONIAL_STATUSES = [
 ]
 
 TESTIMONIAL_STATUS_COLORS = {
-    "flagged": "#9e9e9e",
-    "contacted": "#42a5f5",
-    "scheduled": "#ffa726",
-    "recorded": "#66bb6a",
-    "published": "#1565c0",
-    "declined": "#ef5350",
+    "flagged": "#6B7280",
+    "contacted": "#74B9FF",
+    "scheduled": "#FDCB6E",
+    "recorded": "#00B894",
+    "published": "#D4A03C",
+    "declined": "#E17055",
 }
 
 TESTIMONIAL_TYPES = [
@@ -55,6 +55,27 @@ TESTIMONIAL_TYPES = [
     "high_value_long_form",
     "quantity_short_form",
 ]
+
+# Centralized color maps (used by Angle Bank and other pages)
+CONTENT_TYPE_COLORS = {
+    "educational_explainer": "#74B9FF",
+    "social_hook": "#6C5CE7",
+    "case_study_brief": "#E17055",
+    "testimonial_angle": "#00B894",
+}
+
+INTENT_COLORS = {
+    "Educate": "#74B9FF",
+    "Empathize": "#6C5CE7",
+    "Empower": "#00B894",
+    "Activate": "#E17055",
+}
+
+FUNNEL_COLORS = {
+    "Problem Aware": "#E17055",
+    "Solution Aware": "#FDCB6E",
+    "Service Aware": "#00B894",
+}
 
 # Column groups for Call Data Explorer
 COLUMN_GROUPS = {
@@ -197,12 +218,12 @@ def clean_language(val: str | None) -> str:
 def quality_band(score: int | float | str | None) -> tuple[str, str]:
     """Return (band_name, color) for a quality score."""
     if score is None:
-        return ("N/A", "#9e9e9e")
+        return ("N/A", "#6B7280")
     try:
         score = float(score)
     except (TypeError, ValueError):
-        return ("N/A", "#9e9e9e")
+        return ("N/A", "#6B7280")
     for band_name, (low, high, color) in QUALITY_BANDS.items():
         if low <= score <= high:
             return (band_name, color)
-    return ("N/A", "#9e9e9e")
+    return ("N/A", "#6B7280")

@@ -5,14 +5,13 @@ from datetime import datetime, timedelta
 from utils.queries import get_case_types, get_emotional_tones, get_outcomes, get_languages
 from utils.constants import QUALITY_BANDS
 
-# Darkened text colors for WCAG AA compliance on light backgrounds.
-# Amber/orange bands need darker text to meet 4.5:1 contrast on 15% alpha bg.
+# On dark backgrounds, band colors are already high contrast — use them directly.
 _BAND_TEXT_COLORS = {
-    "POOR": "#d32f2f",
-    "NEEDS IMPROVEMENT": "#7a3d00",
-    "ADEQUATE": "#7a5200",
-    "STRONG": "#388e3c",
-    "EXCEPTIONAL": "#1565c0",
+    "POOR": "#E17055",
+    "NEEDS IMPROVEMENT": "#FDCB6E",
+    "ADEQUATE": "#F9CA24",
+    "STRONG": "#00B894",
+    "EXCEPTIONAL": "#D4A03C",
 }
 
 

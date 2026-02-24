@@ -34,7 +34,8 @@ with st.sidebar:
     min_q, max_q = quality_range_filter(default_min=0, default_max=100, key="qb_quality")
     languages = language_filter(key="qb_lang")
     start_date, end_date = date_range_filter(key="qb_date")
-    st.markdown("---")
+    from utils.theme import styled_divider
+    styled_divider()
     clear_filters("qb")
 
 # --- Reset page when filters change ---
@@ -137,4 +138,4 @@ else:
         with chk_col:
             st.checkbox("", key=f"qb_sel_{sid}", label_visibility="collapsed")
         with card_col:
-            quote_card(row, show_copy=True)
+            quote_card(row, show_copy=False)

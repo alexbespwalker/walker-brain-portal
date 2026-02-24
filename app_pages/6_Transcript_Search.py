@@ -7,7 +7,7 @@ import streamlit as st
 
 from utils.auth import check_password
 from utils.database import get_supabase
-from utils.theme import inject_theme, styled_divider, styled_header
+from utils.theme import inject_theme, styled_divider, styled_header, COLORS
 
 if not check_password():
     st.stop()
@@ -87,18 +87,18 @@ if submitted and keyword.strip():
                     date_str = str(call_date)[:10]
 
             date_html = (
-                f'<span style="font-size:0.75rem;color:#757575;">{_esc(date_str)}</span>'
+                f'<span style="font-size:0.75rem;color:{COLORS["text_hint"]};">{_esc(date_str)}</span>'
                 if date_str
                 else ""
             )
             headline_html = (
-                f'<div style="font-weight:600;font-size:0.9375rem;margin:8px 0 4px;color:#212121;">'
+                f'<div style="font-weight:600;font-size:0.9375rem;margin:8px 0 4px;color:{COLORS["text_primary"]};">'
                 f"{headline}</div>"  # headline may contain <b> tags from ts_headline
                 if headline
                 else ""
             )
             snippet_html = (
-                f'<div style="font-size:0.875rem;color:#424242;line-height:1.6;">'
+                f'<div style="font-size:0.875rem;color:{COLORS["text_secondary"]};line-height:1.6;">'
                 f"{snippet}</div>"  # snippet contains <b> highlight tags from ts_headline
                 if snippet
                 else '<div class="wb-quote-meta">No excerpt available.</div>'

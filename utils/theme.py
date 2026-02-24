@@ -3,49 +3,43 @@
 import streamlit as st
 
 # ---------------------------------------------------------------------------
-# Color palette
+# Color palette — "Dark Authority, Warm Signal"
 # ---------------------------------------------------------------------------
 COLORS = {
-    "primary": "#1565c0",
-    "primary_light": "#1e88e5",
-    "primary_dark": "#0d47a1",
-    "secondary": "#7b1fa2",
-    "accent": "#00897b",
-    "success": "#2e7d32",
-    "warning": "#f57f17",
-    "error": "#c62828",
-    "info": "#0277bd",
-    "neutral": {
-        50: "#fafafa",
-        100: "#f5f5f5",
-        200: "#eeeeee",
-        300: "#e0e0e0",
-        400: "#bdbdbd",
-        500: "#9e9e9e",
-        600: "#757575",
-        700: "#616161",
-        800: "#424242",
-        900: "#212121",
-    },
-    "background": "#ffffff",
-    "surface": "#ffffff",
-    "surface_variant": "#f0f2f5",
-    "text_primary": "#212121",
-    "text_secondary": "#616161",
-    "text_hint": "#9e9e9e",
-    "divider": "#e0e0e0",
-    # Tints for card backgrounds (color + 08 alpha)
-    "tint_primary": "rgba(21, 101, 192, 0.03)",
-    "tint_success": "rgba(46, 125, 50, 0.03)",
-    "tint_warning": "rgba(245, 127, 23, 0.03)",
-    "tint_error": "rgba(198, 40, 40, 0.03)",
+    "primary": "#D4A03C",
+    "primary_light": "#E4B94E",
+    "primary_dark": "#B8882E",
+    "primary_muted": "#D4A03C1A",
+    "secondary": "#6C5CE7",
+    "accent": "#00B894",
+    "success": "#00B894",
+    "warning": "#FDCB6E",
+    "error": "#E17055",
+    "info": "#74B9FF",
+    "background": "#0F1117",
+    "surface": "#1A1D26",
+    "surface_variant": "#232733",
+    "surface_elevated": "#2A2E3B",
+    "text_primary": "#F0F0F5",
+    "text_secondary": "#9CA3B4",
+    "text_hint": "#6B7280",
+    "text_on_primary": "#0F1117",
+    "divider": "#2A2E3B",
+    "border": "#2A2E3B",
+    # Tints for card backgrounds (subtle on dark)
+    "tint_primary": "rgba(212, 160, 60, 0.06)",
+    "tint_success": "rgba(0, 184, 148, 0.06)",
+    "tint_warning": "rgba(253, 203, 110, 0.06)",
+    "tint_error": "rgba(225, 112, 85, 0.06)",
+    "tint_purple": "rgba(108, 92, 231, 0.06)",
 }
 
 # ---------------------------------------------------------------------------
-# Typography
+# Typography — DM Sans (body) + DM Serif Display (headlines/metrics)
 # ---------------------------------------------------------------------------
 TYPOGRAPHY = {
-    "font_family": "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    "font_family": "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    "font_family_display": "'DM Serif Display', Georgia, 'Times New Roman', serif",
     "font_family_mono": "'JetBrains Mono', 'Fira Code', monospace",
     "size": {
         "xs": "0.75rem",
@@ -55,7 +49,7 @@ TYPOGRAPHY = {
         "lg": "1.125rem",
         "xl": "1.25rem",
         "2xl": "1.5rem",
-        "3xl": "1.875rem",
+        "3xl": "2.25rem",
     },
     "weight": {
         "normal": 400,
@@ -67,6 +61,12 @@ TYPOGRAPHY = {
         "tight": 1.25,
         "normal": 1.5,
         "relaxed": 1.75,
+    },
+    "letter_spacing": {
+        "tight": "-0.02em",
+        "normal": "0",
+        "wide": "0.03em",
+        "wider": "0.06em",
     },
 }
 
@@ -84,19 +84,22 @@ SPACING = {
 }
 
 # ---------------------------------------------------------------------------
-# Shadows & Borders
+# Shadows & Borders — higher opacity for dark backgrounds
 # ---------------------------------------------------------------------------
 SHADOWS = {
-    "sm": "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)",
-    "md": "0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.05)",
-    "lg": "0 10px 15px rgba(0,0,0,0.07), 0 4px 6px rgba(0,0,0,0.04)",
+    "sm": "0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2)",
+    "md": "0 4px 6px rgba(0,0,0,0.35), 0 2px 4px rgba(0,0,0,0.25)",
+    "lg": "0 10px 15px rgba(0,0,0,0.4), 0 4px 6px rgba(0,0,0,0.3)",
+    "glow_gold": "0 0 20px rgba(212, 160, 60, 0.15)",
+    "glow_purple": "0 0 20px rgba(108, 92, 231, 0.15)",
 }
 
 BORDERS = {
-    "radius_sm": "6px",
-    "radius_md": "8px",
-    "radius_lg": "12px",
-    "radius_xl": "16px",
+    "radius_sm": "8px",
+    "radius_md": "12px",
+    "radius_lg": "16px",
+    "radius_xl": "20px",
+    "radius_pill": "9999px",
 }
 
 # ---------------------------------------------------------------------------
@@ -105,17 +108,47 @@ BORDERS = {
 _GOOGLE_FONTS_LINK = (
     '<link rel="preconnect" href="https://fonts.googleapis.com">'
     '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
-    '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">'
+    '<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">'
 )
 
 GLOBAL_CSS = f"""
 <style>
 /* --- Google Fonts --- */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap');
 
-/* --- Base typography --- */
+/* --- Animated gold shimmer bar --- */
+@keyframes goldShimmer {{
+    0% {{ background-position: -200% center; }}
+    100% {{ background-position: 200% center; }}
+}}
+
+/* --- Base typography & dark background --- */
 html, body, [class*="css"] {{
     font-family: {TYPOGRAPHY["font_family"]};
+    background-color: {COLORS["background"]};
+    color: {COLORS["text_primary"]};
+}}
+
+/* --- Gold shimmer header bar --- */
+.stApp::before {{
+    content: "";
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(
+        90deg,
+        {COLORS["primary_dark"]},
+        {COLORS["primary"]},
+        {COLORS["primary_light"]},
+        {COLORS["primary"]},
+        {COLORS["primary_dark"]}
+    );
+    background-size: 200% auto;
+    animation: goldShimmer 4s linear infinite;
+    z-index: 9999;
 }}
 
 /* --- Hide Streamlit chrome --- */
@@ -142,12 +175,12 @@ section[data-testid="stSidebar"] .stMarkdown h2 {{
 /* --- Card / container styling --- */
 div[data-testid="stVerticalBlockBorderWrapper"] > div {{
     border-radius: {BORDERS["radius_md"]} !important;
-    border-color: {COLORS["neutral"][200]} !important;
+    border-color: {COLORS["border"]} !important;
 }}
 
-/* --- Metric cards --- */
+/* --- Metric cards (native st.metric) --- */
 div[data-testid="stMetric"] {{
-    background: {COLORS["surface_variant"]};
+    background: {COLORS["surface"]};
     border-radius: {BORDERS["radius_md"]};
     padding: {SPACING["md"]} {SPACING["lg"]};
     box-shadow: {SHADOWS["sm"]};
@@ -157,21 +190,24 @@ div[data-testid="stMetric"] label {{
     color: {COLORS["text_secondary"]};
     font-weight: {TYPOGRAPHY["weight"]["medium"]};
     text-transform: uppercase;
-    letter-spacing: 0.03em;
+    letter-spacing: {TYPOGRAPHY["letter_spacing"]["wide"]};
 }}
 div[data-testid="stMetric"] div[data-testid="stMetricValue"] {{
+    font-family: {TYPOGRAPHY["font_family_display"]};
     font-weight: {TYPOGRAPHY["weight"]["bold"]};
     color: {COLORS["text_primary"]};
 }}
 
 /* --- Expanders --- */
 details[data-testid="stExpander"] {{
-    border: 1px solid {COLORS["neutral"][200]};
+    border: 1px solid {COLORS["border"]};
     border-radius: {BORDERS["radius_md"]};
     box-shadow: {SHADOWS["sm"]};
+    background: {COLORS["surface"]};
 }}
 details[data-testid="stExpander"] summary {{
     font-weight: {TYPOGRAPHY["weight"]["medium"]};
+    color: {COLORS["text_primary"]};
 }}
 
 /* --- Tabs --- */
@@ -179,6 +215,7 @@ button[data-baseweb="tab"] {{
     font-family: {TYPOGRAPHY["font_family"]};
     font-weight: {TYPOGRAPHY["weight"]["medium"]};
     font-size: {TYPOGRAPHY["size"]["sm"]};
+    color: {COLORS["text_secondary"]};
 }}
 
 /* --- Buttons --- */
@@ -209,16 +246,16 @@ input[data-testid="stTextInput"] {{
 .wb-badge {{
     display: inline-block;
     padding: 2px 10px;
-    border-radius: 12px;
+    border-radius: {BORDERS["radius_pill"]};
     font-size: {TYPOGRAPHY["size"]["xs"]};
     font-weight: {TYPOGRAPHY["weight"]["semibold"]};
-    letter-spacing: 0.02em;
+    letter-spacing: {TYPOGRAPHY["letter_spacing"]["wide"]};
     text-transform: uppercase;
 }}
-.wb-badge-success {{ background: #e8f5e9; color: #2e7d32; }}
-.wb-badge-warning {{ background: #fff3e0; color: #e65100; }}
-.wb-badge-error {{ background: #ffebee; color: #c62828; }}
-.wb-badge-info {{ background: #e3f2fd; color: #0d47a1; }}
+.wb-badge-success {{ background: rgba(0, 184, 148, 0.15); color: #00B894; }}
+.wb-badge-warning {{ background: rgba(253, 203, 110, 0.15); color: #FDCB6E; }}
+.wb-badge-error {{ background: rgba(225, 112, 85, 0.15); color: #E17055; }}
+.wb-badge-info {{ background: rgba(116, 185, 255, 0.15); color: #74B9FF; }}
 
 /* --- Soft horizontal divider --- */
 .wb-divider {{
@@ -227,7 +264,7 @@ input[data-testid="stTextInput"] {{
     background: linear-gradient(
         to right,
         transparent,
-        {COLORS["neutral"][300]},
+        {COLORS["border"]},
         transparent
     );
     margin: {SPACING["xl"]} 0;
@@ -256,14 +293,14 @@ input[data-testid="stTextInput"] {{
 /* --- Metric card (custom HTML) --- */
 .wb-metric-card {{
     background: {COLORS["surface"]};
-    border: 1px solid {COLORS["neutral"][200]};
+    border: 1px solid {COLORS["border"]};
     border-radius: {BORDERS["radius_md"]};
     padding: {SPACING["lg"]};
     box-shadow: {SHADOWS["sm"]};
-    transition: box-shadow 0.15s ease;
+    transition: box-shadow 0.2s ease;
 }}
 .wb-metric-card:hover {{
-    box-shadow: {SHADOWS["md"]};
+    box-shadow: {SHADOWS["md"]}, {SHADOWS["glow_gold"]};
 }}
 .wb-metric-label {{
     font-size: {TYPOGRAPHY["size"]["xs"]};
@@ -271,9 +308,12 @@ input[data-testid="stTextInput"] {{
     color: {COLORS["text_secondary"]};
     margin-bottom: {SPACING["xs"]};
     white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: {TYPOGRAPHY["letter_spacing"]["wide"]};
 }}
 .wb-metric-value {{
-    font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+    font-family: {TYPOGRAPHY["font_family_display"]};
+    font-size: clamp(1.25rem, 2.5vw, {TYPOGRAPHY["size"]["3xl"]});
     font-weight: {TYPOGRAPHY["weight"]["bold"]};
     line-height: {TYPOGRAPHY["line_height"]["tight"]};
     margin-bottom: 2px;
@@ -291,6 +331,18 @@ input[data-testid="stTextInput"] {{
     padding: {SPACING["2xl"]};
     box-shadow: {SHADOWS["sm"]};
     margin-bottom: {SPACING["md"]};
+    position: relative;
+}}
+.wb-quote-card::before {{
+    content: "\\201C";
+    position: absolute;
+    top: 12px;
+    left: 16px;
+    font-family: {TYPOGRAPHY["font_family_display"]};
+    font-size: 3rem;
+    color: rgba(212, 160, 60, 0.2);
+    line-height: 1;
+    pointer-events: none;
 }}
 
 /* --- Badge pill row --- */
@@ -308,6 +360,7 @@ input[data-testid="stTextInput"] {{
     color: {COLORS["text_primary"]};
     line-height: {TYPOGRAPHY["line_height"]["relaxed"]};
     margin-bottom: {SPACING["sm"]};
+    padding-left: 24px;
 }}
 .wb-quote-meta {{
     font-size: {TYPOGRAPHY["size"]["xs"]};
@@ -317,17 +370,17 @@ input[data-testid="stTextInput"] {{
 /* --- Nav card (landing page) --- */
 .wb-nav-card {{
     background: {COLORS["surface"]};
-    border: 1px solid {COLORS["neutral"][200]};
+    border: 1px solid {COLORS["border"]};
     border-radius: {BORDERS["radius_lg"]};
     padding: {SPACING["xl"]};
     box-shadow: {SHADOWS["sm"]};
-    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
     text-align: center;
     min-height: 140px;
 }}
 .wb-nav-card:hover {{
-    box-shadow: {SHADOWS["md"]};
-    border-color: {COLORS["primary_light"]};
+    box-shadow: {SHADOWS["md"]}, {SHADOWS["glow_gold"]};
+    border-color: {COLORS["primary"]};
 }}
 .wb-nav-icon {{
     font-size: 2rem;
@@ -350,13 +403,14 @@ input[data-testid="stTextInput"] {{
     max-width: 400px;
     margin: 48px auto 0 auto;
     background: {COLORS["surface"]};
-    border: 1px solid {COLORS["neutral"][200]};
+    border: 1px solid {COLORS["border"]};
     border-radius: {BORDERS["radius_lg"]};
     padding: {SPACING["2xl"]} {SPACING["2xl"]} {SPACING["xl"]};
-    box-shadow: {SHADOWS["lg"]};
+    box-shadow: {SHADOWS["lg"]}, {SHADOWS["glow_gold"]};
     text-align: center;
 }}
 .wb-login-title {{
+    font-family: {TYPOGRAPHY["font_family_display"]};
     font-size: {TYPOGRAPHY["size"]["2xl"]};
     font-weight: {TYPOGRAPHY["weight"]["bold"]};
     color: {COLORS["text_primary"]};
@@ -384,20 +438,20 @@ input[data-testid="stTextInput"] {{
     align-items: center;
     gap: 6px;
     padding: 3px 12px;
-    border-radius: 20px;
+    border-radius: {BORDERS["radius_pill"]};
     font-size: {TYPOGRAPHY["size"]["xs"]};
     font-weight: {TYPOGRAPHY["weight"]["semibold"]};
 }}
 
 /* --- Page title area --- */
 h1 {{
-    font-family: {TYPOGRAPHY["font_family"]} !important;
+    font-family: {TYPOGRAPHY["font_family_display"]} !important;
     font-weight: {TYPOGRAPHY["weight"]["bold"]} !important;
-    letter-spacing: -0.02em !important;
+    letter-spacing: {TYPOGRAPHY["letter_spacing"]["tight"]} !important;
     color: {COLORS["text_primary"]} !important;
 }}
 
-/* --- Code blocks (for copy-to-clipboard) --- */
+/* --- Code blocks --- */
 code {{
     font-family: {TYPOGRAPHY["font_family_mono"]};
     font-size: {TYPOGRAPHY["size"]["sm"]};
@@ -436,19 +490,45 @@ button[data-testid="stBaseButton-secondary"][disabled] {{
 button[data-baseweb="tab"][aria-selected="true"] {{
     border-bottom: 3px solid {COLORS["primary"]} !important;
     font-weight: {TYPOGRAPHY["weight"]["semibold"]} !important;
+    color: {COLORS["text_primary"]} !important;
 }}
 
 /* --- Sidebar nav link hover / active --- */
 section[data-testid="stSidebar"] a[data-testid="stSidebarNavLink"] {{
     border-radius: 6px;
     transition: background-color 0.15s ease;
+    border-left: 3px solid transparent;
 }}
 section[data-testid="stSidebar"] a[data-testid="stSidebarNavLink"]:hover {{
-    background-color: rgba(21, 101, 192, 0.06);
+    background-color: rgba(212, 160, 60, 0.06);
+    border-left-color: rgba(212, 160, 60, 0.3);
 }}
 section[data-testid="stSidebar"] a[data-testid="stSidebarNavLink"][aria-current="page"] {{
-    background-color: rgba(21, 101, 192, 0.10);
+    background-color: rgba(212, 160, 60, 0.10);
+    border-left-color: {COLORS["primary"]};
     font-weight: {TYPOGRAPHY["weight"]["semibold"]};
+}}
+
+/* --- Sidebar wordmark --- */
+.wb-sidebar-wordmark {{
+    margin-bottom: {SPACING["lg"]};
+    padding-bottom: {SPACING["md"]};
+    border-bottom: 1px solid {COLORS["divider"]};
+}}
+.wb-sidebar-wordmark .wb-wm-walker {{
+    font-family: {TYPOGRAPHY["font_family"]};
+    font-weight: 700;
+    font-size: 1.1rem;
+    letter-spacing: {TYPOGRAPHY["letter_spacing"]["wider"]};
+    color: {COLORS["text_primary"]};
+    text-transform: uppercase;
+}}
+.wb-sidebar-wordmark .wb-wm-brain {{
+    font-family: {TYPOGRAPHY["font_family_display"]};
+    font-style: italic;
+    font-size: 1.1rem;
+    color: {COLORS["primary"]};
+    margin-left: 4px;
 }}
 </style>
 """
@@ -457,7 +537,7 @@ section[data-testid="stSidebar"] a[data-testid="stSidebarNavLink"][aria-current=
 # Plotly template (shared across all charts)
 # ---------------------------------------------------------------------------
 PLOTLY_TEMPLATE = dict(
-    font_family=TYPOGRAPHY["font_family"].split(",")[0].strip("'"),
+    font_family="DM Sans",
     font_color=COLORS["text_secondary"],
     font_size=12,
     title_font_size=14,
@@ -465,28 +545,29 @@ PLOTLY_TEMPLATE = dict(
     paper_bgcolor="rgba(0,0,0,0)",
     plot_bgcolor="rgba(0,0,0,0)",
     xaxis=dict(
-        gridcolor=COLORS["neutral"][200],
-        linecolor=COLORS["neutral"][300],
-        zerolinecolor=COLORS["neutral"][300],
+        gridcolor=COLORS["border"],
+        linecolor=COLORS["border"],
+        zerolinecolor=COLORS["border"],
         title_font_size=12,
         tickfont_size=11,
     ),
     yaxis=dict(
-        gridcolor=COLORS["neutral"][200],
-        linecolor=COLORS["neutral"][300],
-        zerolinecolor=COLORS["neutral"][300],
+        gridcolor=COLORS["border"],
+        linecolor=COLORS["border"],
+        zerolinecolor=COLORS["border"],
         title_font_size=12,
         tickfont_size=11,
     ),
     colorway=[
-        COLORS["primary"], COLORS["accent"], COLORS["secondary"],
-        COLORS["success"], COLORS["warning"], COLORS["error"],
-        COLORS["info"], "#ff6f00", "#4527a0", "#00695c",
+        COLORS["primary"], COLORS["secondary"], COLORS["accent"],
+        COLORS["info"], COLORS["error"], COLORS["warning"],
+        "#A29BFE", "#FD79A8", "#FFEAA7", "#55EFC4",
     ],
     hoverlabel=dict(
-        bgcolor=COLORS["neutral"][800],
+        bgcolor=COLORS["surface_variant"],
         font_size=12,
-        font_family=TYPOGRAPHY["font_family"].split(",")[0].strip("'"),
+        font_family="DM Sans",
+        font_color=COLORS["text_primary"],
     ),
     margin=dict(l=40, r=20, t=30, b=40),
 )
@@ -520,3 +601,41 @@ def styled_header(text: str, subtitle: str | None = None):
     if subtitle:
         html += f'<div class="wb-section-subtitle">{subtitle}</div>'
     st.markdown(html, unsafe_allow_html=True)
+
+
+def inject_plotly_title_fix():
+    """Hide Plotly 'undefined' chart titles via JS injection.
+
+    Streamlit's HTML sanitizer strips CSS rules targeting SVG elements inside
+    Plotly charts, so we use st.components.v1.html() to bypass the sanitizer
+    and inject a MutationObserver that hides any .g-gtitle element whose text
+    reads 'undefined'.  Call once per page that renders Plotly charts.
+    """
+    import streamlit.components.v1 as components
+    components.html(
+        """
+        <script>
+        (function() {
+            function hideUndefinedTitles() {
+                var titles = window.parent.document.querySelectorAll('.g-gtitle');
+                for (var i = 0; i < titles.length; i++) {
+                    var txt = titles[i].textContent || '';
+                    if (txt.trim() === 'undefined') {
+                        titles[i].style.display = 'none';
+                    }
+                }
+            }
+            // Run immediately and also observe for dynamic chart renders
+            hideUndefinedTitles();
+            var observer = new MutationObserver(function() { hideUndefinedTitles(); });
+            observer.observe(window.parent.document.body, { childList: true, subtree: true });
+            // Also run on a short delay to catch late Plotly renders
+            setTimeout(hideUndefinedTitles, 1000);
+            setTimeout(hideUndefinedTitles, 3000);
+            setTimeout(hideUndefinedTitles, 5000);
+        })();
+        </script>
+        """,
+        height=0,
+        scrolling=False,
+    )

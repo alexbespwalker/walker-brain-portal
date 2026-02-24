@@ -43,7 +43,8 @@ with st.sidebar:
     tones = emotional_tone_filter(key="cs_tone")
     has_quote = has_quote_toggle(key="cs_quote")
     content_worthy = content_worthy_toggle(key="cs_content")
-    st.markdown("---")
+    from utils.theme import styled_divider
+    styled_divider()
     clear_filters("cs")
 
 # --- Reset page when filters change ---

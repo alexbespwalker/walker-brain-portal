@@ -22,13 +22,13 @@ from utils.database import get_supabase
 _quick_status = get_system_status()
 if _quick_status and _quick_status.get("system_active"):
     st.markdown(
-        f'<div class="wb-status-pill" style="background:#e8f5e9; color:#2e7d32;">'
+        f'<div class="wb-status-pill" style="background:rgba(0,184,148,0.15); color:{COLORS["success"]};">'
         f'&#9679; System operational</div>',
         unsafe_allow_html=True,
     )
 else:
     st.markdown(
-        f'<div class="wb-status-pill" style="background:#ffebee; color:#c62828;">'
+        f'<div class="wb-status-pill" style="background:rgba(225,112,85,0.15); color:{COLORS["error"]};">'
         f'&#9679; System paused</div>',
         unsafe_allow_html=True,
     )
@@ -49,17 +49,20 @@ with st.spinner("Loading summary..."):
         _scores = [r["quality_score"] for r in (_summary_rows.data or []) if r.get("quality_score") is not None]
         _avg_quality = sum(_scores) / len(_scores) if _scores else 0
 
+        from components.cards import metric_card
         cols = st.columns(3)
-        cols[0].metric("Processed (7d)", f"{_total_7d:,}")
-        cols[1].metric("Avg/day", f"{_avg_daily:.0f}")
-        cols[2].metric("Avg Quality (7d)", f"{_avg_quality:.1f}")
+        with cols[0]:
+            metric_card("Processed (7d)", f"{_total_7d:,}", color=COLORS["primary"])
+        with cols[1]:
+            metric_card("Avg/day", f"{_avg_daily:.0f}", color=COLORS["info"])
+        with cols[2]:
+            metric_card("Avg Quality (7d)", f"{_avg_quality:.1f}", color=COLORS["success"])
     except Exception:
         st.caption("Summary unavailable.")
 
 styled_divider()
 
 if not st.session_state.get("admin_authenticated"):
-    st.markdown("---")
     st.markdown("#### 🔐 Admin View")
     st.caption(
         "Enter the admin password to view cost tracking, quality distribution, "
@@ -75,6 +78,36 @@ from components.charts import (
 )
 
 client = get_supabase()
+
+# Fix Plotly "undefined" title bug (Streamlit/Plotly.js integration issue).
+# Injected inline because Streamlit caches module imports and may not pick up
+# new exports from utils.theme until process restart.
+import streamlit.components.v1 as _components
+_components.html(
+    """
+    <script>
+    (function() {
+        function hideUndefinedTitles() {
+            var titles = window.parent.document.querySelectorAll('.g-gtitle');
+            for (var i = 0; i < titles.length; i++) {
+                var txt = titles[i].textContent || '';
+                if (txt.trim() === 'undefined') {
+                    titles[i].style.display = 'none';
+                }
+            }
+        }
+        hideUndefinedTitles();
+        var observer = new MutationObserver(function() { hideUndefinedTitles(); });
+        observer.observe(window.parent.document.body, { childList: true, subtree: true });
+        setTimeout(hideUndefinedTitles, 1000);
+        setTimeout(hideUndefinedTitles, 3000);
+        setTimeout(hideUndefinedTitles, 5000);
+    })();
+    </script>
+    """,
+    height=0,
+    scrolling=False,
+)
 
 # --- System Status ---
 styled_header("System Status")
@@ -92,10 +125,15 @@ if status:
     budget_remaining = max(0, daily_budget - daily_spend)
 
     cols = st.columns(4)
-    cols[0].metric("Active", "Yes" if is_active else "No")
-    cols[1].metric("Daily Budget", f"${daily_budget:.2f}")
-    cols[2].metric("Today's Spend", f"${daily_spend:.2f}")
-    cols[3].metric("Budget Remaining", f"${budget_remaining:.2f}")
+    with cols[0]:
+        metric_card("Active", "Yes" if is_active else "No",
+                     color=COLORS["success"] if is_active else COLORS["error"])
+    with cols[1]:
+        metric_card("Daily Budget", f"${daily_budget:.2f}", color=COLORS["primary"])
+    with cols[2]:
+        metric_card("Today's Spend", f"${daily_spend:.2f}", color=COLORS["warning"])
+    with cols[3]:
+        metric_card("Budget Remaining", f"${budget_remaining:.2f}", color=COLORS["success"])
 else:
     st.caption("System status unavailable.")
 
@@ -115,11 +153,14 @@ if not cost_df.empty and "date" in cost_df.columns and "total_cost" in cost_df.c
     cols = st.columns(3)
     total = cost_df["total_cost"].sum()
     avg_daily = cost_df["total_cost"].mean()
-    cols[0].metric("Total (30d)", f"${total:.2f}")
-    cols[1].metric("Avg daily", f"${avg_daily:.2f}")
+    with cols[0]:
+        metric_card("Total (30d)", f"${total:.2f}", color=COLORS["primary"])
+    with cols[1]:
+        metric_card("Avg daily", f"${avg_daily:.2f}", color=COLORS["info"])
     if "calls_processed" in cost_df.columns:
         total_calls = cost_df["calls_processed"].sum()
-        cols[2].metric("Calls processed (30d)", f"{total_calls:,}")
+        with cols[2]:
+            metric_card("Calls processed (30d)", f"{total_calls:,}", color=COLORS["success"])
 else:
     st.caption("No cost data available.")
 
@@ -244,9 +285,12 @@ with st.spinner("Loading throughput data..."):
         pass_rate = (passed / total * 100) if total else 0
 
         cols = st.columns(3)
-        cols[0].metric("Processed (7d)", f"{total:,}")
-        cols[1].metric("Avg/day", f"{total / 7:.0f}")
-        cols[2].metric("Validation pass rate", f"{pass_rate:.1f}%")
+        with cols[0]:
+            metric_card("Processed (7d)", f"{total:,}", color=COLORS["primary"])
+        with cols[1]:
+            metric_card("Avg/day", f"{total / 7:.0f}", color=COLORS["info"])
+        with cols[2]:
+            metric_card("Validation pass rate", f"{pass_rate:.1f}%", color=COLORS["success"])
     except Exception:
         st.caption("Throughput data unavailable.")
 

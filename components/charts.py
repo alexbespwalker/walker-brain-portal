@@ -17,6 +17,20 @@ def _hex_to_rgba(hex_color: str, alpha: float) -> str:
 def _apply_template(fig: go.Figure, **overrides) -> go.Figure:
     """Apply the shared Plotly template with optional per-chart overrides."""
     layout = {**PLOTLY_TEMPLATE, **overrides}
+    # Always normalise title into an explicit dict to prevent Plotly.js
+    # rendering "undefined" when it receives a bare string or missing value.
+    raw_title = layout.pop("title", layout.pop("title_text", None))
+    title_font_size = layout.pop("title_font_size", 14)
+    title_font_color = layout.pop("title_font_color", COLORS["text_primary"])
+    if isinstance(raw_title, dict):
+        # Already a dict — ensure text key exists
+        raw_title.setdefault("text", "")
+        layout["title"] = raw_title
+    else:
+        layout["title"] = dict(
+            text=raw_title if raw_title else "",
+            font=dict(size=title_font_size, color=title_font_color),
+        )
     fig.update_layout(**layout)
     return fig
 
@@ -117,6 +131,7 @@ def quality_histogram(df: pd.DataFrame, column: str = "quality_score") -> go.Fig
 
     return _apply_template(
         fig,
+        title="",
         xaxis_title="Quality Score",
         yaxis_title="Count",
         height=300,
@@ -131,7 +146,7 @@ def case_type_pie(df: pd.DataFrame, column: str = "case_type") -> go.Figure:
     counts = df[column].value_counts().reset_index()
     counts.columns = ["case_type", "count"]
 
-    colors = [CASE_TYPE_COLORS.get(ct, "#bcbd22") for ct in counts["case_type"]]
+    colors = [CASE_TYPE_COLORS.get(ct, "#9CA3B4") for ct in counts["case_type"]]
 
     fig = go.Figure(go.Pie(
         labels=counts["case_type"],
@@ -144,6 +159,7 @@ def case_type_pie(df: pd.DataFrame, column: str = "case_type") -> go.Figure:
     ))
     return _apply_template(
         fig,
+        title="",
         height=300,
         showlegend=False,
         margin=dict(l=20, r=20, t=20, b=20),
@@ -167,6 +183,7 @@ def volume_trend(df: pd.DataFrame) -> go.Figure:
     ))
     return _apply_template(
         fig,
+        title="",
         xaxis_title="Date",
         yaxis_title="Calls Processed",
         height=250,
@@ -236,6 +253,7 @@ def cost_trend(df: pd.DataFrame) -> go.Figure:
     ))
     return _apply_template(
         fig,
+        title="",
         xaxis_title="Date",
         yaxis_title="Cost ($)",
         height=250,
@@ -256,6 +274,7 @@ def quality_violin(df: pd.DataFrame, column: str = "quality_score") -> go.Figure
     ))
     return _apply_template(
         fig,
+        title="",
         yaxis_title="Quality Score",
         height=300,
         margin=dict(l=40, r=20, t=20, b=20),
@@ -276,7 +295,7 @@ def scatter_calibration(
     fig.add_trace(go.Scatter(
         x=[0, 100], y=[0, 100],
         mode="lines",
-        line=dict(dash="dash", color=COLORS["neutral"][400]),
+        line=dict(dash="dash", color=COLORS["text_hint"]),
         showlegend=False,
     ))
 
@@ -290,6 +309,7 @@ def scatter_calibration(
 
     return _apply_template(
         fig,
+        title="",
         xaxis_title="Grok Production Score",
         yaxis_title="Consensus Score",
         height=350,
