@@ -3,8 +3,18 @@
 import json
 import streamlit as st
 import pandas as pd
+from datetime import datetime, timedelta
+
 from utils.auth import check_password
 from utils.theme import inject_theme, styled_divider, styled_header, COLORS
+from components.cards import metric_card, quote_card
+from components.charts import quality_histogram, volume_trend, case_type_pie, trending_bar_chart
+from utils.constants import humanize, quality_band
+from utils.queries import (
+    get_weekly_metric_counts, get_prior_period_metrics, fetch_quotes, get_daily_volume,
+    get_last_updated,
+)
+from utils.database import query_table, get_supabase
 
 if not check_password():
     st.stop()
@@ -17,16 +27,6 @@ if _last_updated:
     st.caption(f"Curated content picks for the creative team. · Data last updated: {_last_updated}")
 else:
     st.caption("Curated content picks for the creative team.")
-
-from components.cards import metric_card, quote_card
-from components.charts import quality_histogram, volume_trend, case_type_pie, trending_bar_chart
-from utils.constants import humanize
-from utils.queries import (
-    get_weekly_metric_counts, get_prior_period_metrics, fetch_quotes, get_daily_volume,
-    get_last_updated,
-)
-from utils.constants import quality_band
-from utils.database import query_table, get_supabase
 
 client = get_supabase()
 
@@ -59,7 +59,6 @@ left, right = st.columns([3, 2])
 
 with left:
     styled_header("Top Quotes This Week")
-    from datetime import datetime, timedelta
     week_cutoff = (datetime.utcnow() - timedelta(days=7)).isoformat()
     top_quotes = fetch_quotes(min_quality=0, max_quality=100, limit=5, start_date=week_cutoff)
     if top_quotes:
@@ -71,7 +70,6 @@ with left:
 with right:
     styled_header("Trending This Week")
 
-    from datetime import datetime, timedelta
     cutoff_7d = (datetime.utcnow() - timedelta(days=7)).isoformat()
 
     # Top objection categories — bar chart
@@ -142,7 +140,7 @@ with right:
                         raw_ct = pt.get("y")
                     if raw_ct:
                         st.session_state["cs_case"] = [raw_ct]
-                        st.switch_page("pages/2_Call_Search.py")
+                        st.switch_page("app_pages/2_Call_Search.py")
             except Exception:
                 st.plotly_chart(fig, use_container_width=True)
         else:

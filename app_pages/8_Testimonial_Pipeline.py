@@ -12,6 +12,8 @@ inject_theme()
 st.title("Testimonial Pipeline")
 st.caption("Track testimonial candidates from flagged through published.")
 
+st.info("93 testimonials ready for review. Content generation pipeline launches next sprint.")
+
 from utils.queries import get_testimonial_pipeline, update_testimonial_status
 from utils.constants import TESTIMONIAL_STATUSES, TESTIMONIAL_STATUS_COLORS, TESTIMONIAL_TYPES
 from components.cards import testimonial_card

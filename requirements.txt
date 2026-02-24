@@ -1,5 +1,5 @@
-streamlit>=1.30.0
-supabase>=2.0.0
-pandas>=2.0.0
-plotly>=5.18.0
-python-docx>=1.0.0
+streamlit>=1.36.0,<2.0.0
+supabase>=2.0.0,<3.0.0
+pandas>=2.0.0,<3.0.0
+plotly>=5.18.0,<6.0.0
+python-docx>=1.0.0,<2.0.0

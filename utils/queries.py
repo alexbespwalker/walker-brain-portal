@@ -285,16 +285,11 @@ def get_weekly_metric_counts(days: int = 7) -> dict:
         .gte("analyzed_at", cutoff)
         .execute()
     )
-    quality_rows = (
-        client.table("analysis_results")
-        .select("quality_score")
-        .not_.is_("quality_score", "null")
-        .gte("analyzed_at", cutoff)
-        .execute()
-        .data
-    )
-    scores = sorted([r["quality_score"] for r in quality_rows])
-    median = scores[len(scores) // 2] if scores else 0
+    median_rows = client.rpc(
+        "get_quality_median", {"cutoff_start": cutoff}
+    ).execute().data
+    median_val = median_rows[0].get("median") if median_rows else None
+    median = int(round(median_val)) if median_val is not None else 0
 
     return {
         "quotes": quotes.count or 0,
@@ -336,17 +331,12 @@ def get_prior_period_metrics(days: int = 7) -> dict:
         .lt("analyzed_at", cutoff_current)
         .execute()
     )
-    quality_rows = (
-        client.table("analysis_results")
-        .select("quality_score")
-        .not_.is_("quality_score", "null")
-        .gte("analyzed_at", cutoff_prior)
-        .lt("analyzed_at", cutoff_current)
-        .execute()
-        .data
-    )
-    scores = sorted([r["quality_score"] for r in quality_rows])
-    median = scores[len(scores) // 2] if scores else 0
+    median_rows = client.rpc(
+        "get_quality_median",
+        {"cutoff_start": cutoff_prior, "cutoff_end": cutoff_current},
+    ).execute().data
+    median_val = median_rows[0].get("median") if median_rows else None
+    median = int(round(median_val)) if median_val is not None else 0
 
     return {
         "quotes": quotes.count or 0,
@@ -364,29 +354,18 @@ def get_top_quotes(days: int = 7, limit: int = 5) -> list[dict]:
 
 
 def get_daily_volume(days: int = 7) -> pd.DataFrame:
-    """Daily call volume for the trend chart."""
-    client = get_supabase()
-    from datetime import datetime, timedelta
+    """Daily call volume for the trend chart.
 
-    cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
-    rows = (
-        client.table("analysis_results")
-        .select("analyzed_at, quality_score")
-        .gte("analyzed_at", cutoff)
-        .order("analyzed_at")
-        .execute()
-        .data
-    )
+    Uses get_daily_volume_stats() RPC — returns ≤30 aggregated rows instead of
+    fetching all raw rows and grouping in Python.
+    """
+    client = get_supabase()
+    rows = client.rpc("get_daily_volume_stats", {"days_back": days}).execute().data
     if not rows:
         return pd.DataFrame(columns=["date", "count", "avg_quality"])
-
     df = pd.DataFrame(rows)
-    df["date"] = pd.to_datetime(df["analyzed_at"]).dt.date
-    daily = df.groupby("date").agg(
-        count=("quality_score", "size"),
-        avg_quality=("quality_score", "mean"),
-    ).reset_index()
-    return daily
+    df["date"] = pd.to_datetime(df["date"]).dt.date
+    return df
 
 
 # ---------------------------------------------------------------------------

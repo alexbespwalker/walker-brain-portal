@@ -119,13 +119,13 @@ def update_row(table: str, data: dict, match: dict) -> dict:
 
 @st.cache_data(ttl=3600)
 def get_distinct_values(table: str, column: str) -> list[str]:
-    """Get distinct non-null values for a column. Cached 1 hour."""
+    """Get distinct non-null values for a column via SQL RPC. Cached 1 hour.
+
+    Uses get_distinct_column_values() RPC to avoid PostgREST's 1,000-row cap
+    that would silently truncate filter dropdown options.
+    """
     client = get_supabase()
-    rows = (
-        client.table(table)
-        .select(column)
-        .not_.is_(column, "null")
-        .execute()
-        .data
-    )
-    return sorted(set(row[column] for row in rows if row.get(column)))
+    rows = client.rpc(
+        "get_distinct_column_values", {"p_table": table, "p_column": column}
+    ).execute().data
+    return [row["value"] for row in rows if row.get("value")]

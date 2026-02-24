@@ -174,7 +174,7 @@ else:
             # "Open in Call Search" navigation button
             if st.button("Open in Call Search", key=f"ex_nav_{selected_id}"):
                 st.session_state["jump_to_call_id"] = selected_id
-                st.switch_page("pages/2_Call_Search.py")
+                st.switch_page("app_pages/2_Call_Search.py")
 
             with st.expander(f"Full detail: {selected_id[:8]}\u2026", expanded=True):
                 detail = get_call_detail(selected_id)
