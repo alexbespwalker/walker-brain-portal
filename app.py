@@ -44,7 +44,8 @@ if st.session_state.get("authenticated"):
         from utils.auth import get_current_display_name, logout
         from utils.theme import COLORS, TYPOGRAPHY, SPACING
 
-        display_name = get_current_display_name()
+        import html as _html
+        display_name = _html.escape(get_current_display_name())
         st.markdown(
             f'<div style="padding:{SPACING["sm"]} {SPACING["md"]}; '
             f'background:{COLORS["surface"]}; border:1px solid {COLORS["border"]}; '

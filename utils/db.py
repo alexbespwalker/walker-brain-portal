@@ -39,6 +39,17 @@ def validate_session(token: str) -> dict[str, Any] | None:
     return rows[0] if rows else None
 
 
+def register_user(email: str, password: str, display_name: str | None = None) -> dict[str, Any] | None:
+    """Self-register a new user (domain-checked in RPC)."""
+    client = get_supabase()
+    resp = client.rpc(
+        "wb_register_user",
+        {"p_email": email, "p_password": password, "p_display_name": display_name},
+    ).execute()
+    rows = resp.data or []
+    return rows[0] if rows else None
+
+
 def delete_session(token: str) -> None:
     """Delete a session (logout)."""
     client = get_supabase()

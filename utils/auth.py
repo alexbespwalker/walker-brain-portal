@@ -5,7 +5,7 @@ from __future__ import annotations
 import streamlit as st
 
 from utils.theme import inject_theme, COLORS, TYPOGRAPHY, SPACING, SHADOWS, BORDERS
-from utils.db import authenticate_user, create_session, validate_session, delete_session
+from utils.db import authenticate_user, create_session, validate_session, delete_session, register_user
 
 
 def check_password() -> bool:
@@ -51,33 +51,91 @@ def check_password() -> bool:
 
     _, center, _ = st.columns([1, 1.2, 1])
     with center:
-        email = st.text_input(
-            "Email", key="login_email",
-            placeholder="you@walkeradvertising.com",
-            label_visibility="collapsed",
-        )
-        password = st.text_input(
-            "Password", type="password", key="login_password",
-            placeholder="Password",
-            label_visibility="collapsed",
-        )
-        if st.button("Sign in", type="primary", use_container_width=True):
-            if not email or not password:
-                st.error("Enter both email and password.")
-            else:
-                user = authenticate_user(email.strip(), password)
-                if user:
-                    display = user.get("user_display_name") or user["user_email"]
-                    token = create_session(user["user_id"], display)
-                    st.session_state["authenticated"] = True
-                    st.session_state["user_email"] = user["user_email"]
-                    st.session_state["user_display_name"] = display
-                    st.session_state["user_is_admin"] = user.get("user_is_admin", False)
-                    st.session_state["session_token"] = token
-                    st.query_params["_session"] = token
-                    st.rerun()
+        sign_in_tab, create_tab = st.tabs(["Sign in", "Create account"])
+
+        with sign_in_tab:
+            email = st.text_input(
+                "Email", key="login_email",
+                placeholder="you@walkeradvertising.com",
+                label_visibility="collapsed",
+            )
+            password = st.text_input(
+                "Password", type="password", key="login_password",
+                placeholder="Password",
+                label_visibility="collapsed",
+            )
+            if st.button("Sign in", type="primary", use_container_width=True):
+                if not email or not password:
+                    st.error("Enter both email and password.")
                 else:
-                    st.error("Invalid email or password.")
+                    user = authenticate_user(email.strip(), password)
+                    if user:
+                        display = user.get("user_display_name") or user["user_email"]
+                        token = create_session(user["user_id"], display)
+                        st.session_state["authenticated"] = True
+                        st.session_state["user_email"] = user["user_email"]
+                        st.session_state["user_display_name"] = display
+                        st.session_state["user_is_admin"] = user.get("user_is_admin", False)
+                        st.session_state["session_token"] = token
+                        st.query_params["_session"] = token
+                        st.rerun()
+                    else:
+                        st.error("Invalid email or password.")
+
+        with create_tab:
+            reg_email = st.text_input(
+                "Email", key="reg_email",
+                placeholder="you@walkeradvertising.com",
+                label_visibility="collapsed",
+            )
+            reg_name = st.text_input(
+                "Display name", key="reg_name",
+                placeholder="Display name",
+                label_visibility="collapsed",
+            )
+            reg_password = st.text_input(
+                "Password", type="password", key="reg_password",
+                placeholder="Password",
+                label_visibility="collapsed",
+            )
+            reg_confirm = st.text_input(
+                "Confirm password", type="password", key="reg_confirm",
+                placeholder="Confirm password",
+                label_visibility="collapsed",
+            )
+            if st.button("Create account", type="primary", use_container_width=True):
+                if not reg_email or not reg_name or not reg_password or not reg_confirm:
+                    st.error("All fields are required.")
+                elif reg_password != reg_confirm:
+                    st.error("Passwords do not match.")
+                else:
+                    try:
+                        new_user = register_user(reg_email.strip(), reg_password, reg_name.strip())
+                        if new_user:
+                            # Auto-login after registration
+                            user = authenticate_user(reg_email.strip(), reg_password)
+                            if user:
+                                display = user.get("user_display_name") or user["user_email"]
+                                token = create_session(user["user_id"], display)
+                                st.session_state["authenticated"] = True
+                                st.session_state["user_email"] = user["user_email"]
+                                st.session_state["user_display_name"] = display
+                                st.session_state["user_is_admin"] = user.get("user_is_admin", False)
+                                st.session_state["session_token"] = token
+                                st.query_params["_session"] = token
+                                st.rerun()
+                            else:
+                                st.success("Account created! Please sign in.")
+                        else:
+                            st.error("Registration failed. Please try again.")
+                    except Exception as e:
+                        err = str(e)
+                        if "unique" in err.lower() or "duplicate" in err.lower() or "already exists" in err.lower():
+                            st.error("Account already exists. Sign in instead.")
+                        elif "walkeradvertising.com" in err:
+                            st.error("Registration restricted to @walkeradvertising.com emails.")
+                        else:
+                            st.error("Registration failed. Please try again or contact an administrator.")
 
     st.stop()
     return False
