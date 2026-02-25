@@ -630,19 +630,29 @@ def get_nsm_weekly_count() -> dict:
     }
 
 
-def update_angle_feedback(transcript_id: str, status: str) -> bool:
+def update_angle_feedback(
+    transcript_id: str,
+    status: str,
+    comment: str | None = None,
+    user_email: str | None = None,
+) -> bool:
     """Update usage_status + feedback_at on a surfacing_ledger row.
 
     Only updates rows still in 'surfaced' status (idempotent).
     """
     from datetime import datetime, timezone
     client = get_supabase()
+    data = {
+        "usage_status": status,
+        "feedback_at": datetime.now(timezone.utc).isoformat(),
+    }
+    if comment:
+        data["feedback_comment"] = comment
+    if user_email:
+        data["feedback_by"] = user_email
     result = (
         client.table("surfacing_ledger")
-        .update({
-            "usage_status": status,
-            "feedback_at": datetime.now(timezone.utc).isoformat(),
-        })
+        .update(data)
         .eq("source_transcript_id", transcript_id)
         .eq("usage_status", "surfaced")
         .execute()
@@ -651,26 +661,96 @@ def update_angle_feedback(transcript_id: str, status: str) -> bool:
 
 
 @st.cache_data(ttl=120)
-def get_ledger_statuses(transcript_ids: tuple) -> dict:
-    """Fetch usage_status for a batch of transcript IDs from surfacing_ledger.
+def get_ledger_detail(transcript_ids: tuple) -> dict:
+    """Fetch feedback detail for a batch of transcript IDs from surfacing_ledger.
 
     Args:
         transcript_ids: tuple of transcript ID strings (tuple for cache hashability).
 
     Returns:
-        Dict mapping source_transcript_id -> usage_status.
+        Dict mapping source_transcript_id -> dict with keys:
+        usage_status, feedback_comment, feedback_by, feedback_at.
     """
     if not transcript_ids:
         return {}
     client = get_supabase()
     rows = (
         client.table("surfacing_ledger")
-        .select("source_transcript_id, usage_status")
+        .select("source_transcript_id, usage_status, feedback_comment, feedback_by, feedback_at")
         .in_("source_transcript_id", list(transcript_ids))
         .execute()
         .data
     )
-    return {r["source_transcript_id"]: r["usage_status"] for r in rows}
+    return {
+        r["source_transcript_id"]: {
+            "usage_status": r.get("usage_status"),
+            "feedback_comment": r.get("feedback_comment"),
+            "feedback_by": r.get("feedback_by"),
+            "feedback_at": r.get("feedback_at"),
+        }
+        for r in rows
+    }
+
+
+@st.cache_data(ttl=120)
+def get_feedback_stats() -> dict:
+    """Return feedback stats: {total, reviewed, used_this_month}."""
+    from datetime import datetime, timedelta, timezone
+    client = get_supabase()
+
+    total_res = (
+        client.table("surfacing_ledger")
+        .select("source_transcript_id", count="exact")
+        .execute()
+    )
+    total = total_res.count or 0
+
+    reviewed_res = (
+        client.table("surfacing_ledger")
+        .select("source_transcript_id", count="exact")
+        .neq("usage_status", "surfaced")
+        .execute()
+    )
+    reviewed = reviewed_res.count or 0
+
+    month_start = datetime.now(timezone.utc).replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
+    used_res = (
+        client.table("surfacing_ledger")
+        .select("source_transcript_id", count="exact")
+        .eq("usage_status", "used")
+        .gte("feedback_at", month_start)
+        .execute()
+    )
+    used_this_month = used_res.count or 0
+
+    return {"total": total, "reviewed": reviewed, "used_this_month": used_this_month}
+
+
+@st.cache_data(ttl=300)
+def get_nsm_weekly_history(weeks: int = 6) -> list[dict]:
+    """Return weekly angle counts for the last N weeks (for sparkline).
+
+    Returns list of dicts: [{week_start: str, count: int}, ...]
+    """
+    from datetime import datetime, timedelta, timezone
+    client = get_supabase()
+    now = datetime.now(timezone.utc)
+    results = []
+    for i in range(weeks - 1, -1, -1):
+        week_end = now - timedelta(weeks=i)
+        week_start = week_end - timedelta(weeks=1)
+        res = (
+            client.table("surfacing_ledger")
+            .select("source_transcript_id", count="exact")
+            .gte("surfaced_at", week_start.isoformat())
+            .lt("surfaced_at", week_end.isoformat())
+            .execute()
+        )
+        results.append({
+            "week_start": week_start.strftime("%b %d"),
+            "count": res.count or 0,
+        })
+    return results
 
 
 def count_explorer_rows(

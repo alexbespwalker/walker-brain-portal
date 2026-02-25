@@ -1,14 +1,41 @@
-"""Simple password authentication for Walker Brain Portal."""
+"""Email/password authentication for Walker Brain Portal (Invoca pattern)."""
+
+from __future__ import annotations
 
 import streamlit as st
+
 from utils.theme import inject_theme, COLORS, TYPOGRAPHY, SPACING, SHADOWS, BORDERS
+from utils.db import authenticate_user, create_session, validate_session, delete_session
 
 
 def check_password() -> bool:
-    """Show branded password gate and return True if authenticated."""
+    """Authenticate via DB-backed email/password with session persistence.
+
+    Flow:
+    1. session_state["authenticated"] — same-tab fast path
+    2. query_params["_session"] — cross-refresh persistence via DB
+    3. Login form — email + password
+    """
+    # 1. Already authenticated this tab
     if st.session_state.get("authenticated"):
         return True
 
+    # 2. Session token in URL — validate against DB
+    session_token = st.query_params.get("_session")
+    if session_token:
+        user = validate_session(session_token)
+        if user:
+            st.session_state["authenticated"] = True
+            st.session_state["user_email"] = user["user_email"]
+            st.session_state["user_display_name"] = user.get("user_display_name") or user["user_email"]
+            st.session_state["user_is_admin"] = user.get("user_is_admin", False)
+            st.session_state["session_token"] = session_token
+            return True
+        else:
+            # Expired/invalid token — clear it
+            del st.query_params["_session"]
+
+    # 3. Show login form
     inject_theme()
 
     st.markdown(
@@ -16,49 +43,72 @@ def check_password() -> bool:
         <div class="wb-login-card">
             <div style="font-size: 2rem; margin-bottom: {SPACING["sm"]};">&#129504;</div>
             <div class="wb-login-title">Walker Brain</div>
-            <div class="wb-login-subtitle">Enter the portal password to continue.</div>
+            <div class="wb-login-subtitle">Sign in with your company email</div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    # Center the form inputs with columns — narrower to visually connect to card
     _, center, _ = st.columns([1, 1.2, 1])
     with center:
-        password = st.text_input("Password", type="password", key="password_input", label_visibility="collapsed", placeholder="Password")
-        if st.button("Log in", type="primary", use_container_width=True):
-            try:
-                configured = st.secrets["auth"]["password"]
-            except KeyError:
-                st.error("Portal password not configured. Contact administrator.")
-                return False
-            if not configured:
-                st.error("Portal password not configured. Contact administrator.")
-            elif password == configured:
-                st.session_state["authenticated"] = True
-                st.rerun()
+        email = st.text_input(
+            "Email", key="login_email",
+            placeholder="you@walkeradvertising.com",
+            label_visibility="collapsed",
+        )
+        password = st.text_input(
+            "Password", type="password", key="login_password",
+            placeholder="Password",
+            label_visibility="collapsed",
+        )
+        if st.button("Sign in", type="primary", use_container_width=True):
+            if not email or not password:
+                st.error("Enter both email and password.")
             else:
-                st.error("Incorrect password.")
+                user = authenticate_user(email.strip(), password)
+                if user:
+                    display = user.get("user_display_name") or user["user_email"]
+                    token = create_session(user["user_id"], display)
+                    st.session_state["authenticated"] = True
+                    st.session_state["user_email"] = user["user_email"]
+                    st.session_state["user_display_name"] = display
+                    st.session_state["user_is_admin"] = user.get("user_is_admin", False)
+                    st.session_state["session_token"] = token
+                    st.query_params["_session"] = token
+                    st.rerun()
+                else:
+                    st.error("Invalid email or password.")
+
+    st.stop()
     return False
+
+
+def get_current_user() -> str | None:
+    """Return the logged-in user's email, or None."""
+    return st.session_state.get("user_email")
+
+
+def get_current_display_name() -> str:
+    """Return display name, falling back to email."""
+    return st.session_state.get("user_display_name") or st.session_state.get("user_email", "")
 
 
 def check_admin() -> bool:
-    """Check if user has entered admin password. Returns True if admin."""
-    if st.session_state.get("admin_authenticated"):
-        return True
+    """Return True if the current user has admin role."""
+    return st.session_state.get("user_is_admin", False)
 
-    admin_pw = st.text_input("Admin password", type="password", key="admin_pw")
-    if st.button("Authenticate as admin"):
+
+def logout() -> None:
+    """Delete DB session and clear all auth state."""
+    token = st.session_state.get("session_token")
+    if token:
         try:
-            configured = st.secrets["auth"].get("admin_password", "")
-        except KeyError:
-            st.error("Admin login is not configured.")
-            return False
-        if not configured or configured == "__DISABLED__":
-            st.error("Admin login is not configured.")
-        elif admin_pw == configured:
-            st.session_state["admin_authenticated"] = True
-            st.rerun()
-        else:
-            st.error("Incorrect admin password.")
-    return False
+            delete_session(token)
+        except Exception:
+            pass  # best-effort cleanup
+
+    for key in ("authenticated", "user_email", "user_display_name", "user_is_admin", "session_token"):
+        st.session_state.pop(key, None)
+    if "_session" in st.query_params:
+        del st.query_params["_session"]
+    st.rerun()

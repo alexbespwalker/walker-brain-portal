@@ -12,7 +12,7 @@ from components.charts import quality_histogram, volume_trend, case_type_pie, tr
 from utils.constants import humanize, quality_band
 from utils.queries import (
     get_weekly_metric_counts, get_prior_period_metrics, fetch_quotes, get_daily_volume,
-    get_last_updated, get_nsm_weekly_count,
+    get_last_updated, get_nsm_weekly_count, get_nsm_weekly_history,
 )
 from utils.database import query_table, get_supabase
 
@@ -35,31 +35,90 @@ nsm = get_nsm_weekly_count()
 nsm_left, nsm_right = st.columns([2, 1])
 with nsm_left:
     if nsm["this_week"] == 0 and nsm["last_week"] == 0:
-        metric_card(
-            "Unique Angles Surfaced This Week",
-            "0",
-            color=COLORS["primary"],
+        # Zero state: muted billboard, no gold glow, instructional text
+        st.markdown(
+            f'<div style="background:{COLORS["surface"]}; '
+            f'border:1px dashed {COLORS["border"]}; border-left:4px solid {COLORS["text_hint"]}; '
+            f'border-radius:{BORDERS["radius_lg"]}; padding:24px 28px; '
+            f'box-shadow:{SHADOWS["sm"]};">'
+            f'<div style="font-size:{TYPOGRAPHY["size"]["xs"]}; color:{COLORS["text_hint"]}; '
+            f'text-transform:uppercase; letter-spacing:0.08em; font-weight:600; '
+            f'margin-bottom:8px; font-family:{TYPOGRAPHY["font_family"]};">North Star Metric</div>'
+            f'<div style="font-family:{TYPOGRAPHY["font_family_display"]}; font-size:clamp(1.5rem, 3vw, 2.5rem); '
+            f'font-weight:700; color:{COLORS["text_hint"]}; line-height:1.1;">\u2014</div>'
+            f'<div style="font-size:{TYPOGRAPHY["size"]["base"]}; color:{COLORS["text_secondary"]}; '
+            f'margin-top:6px; font-family:{TYPOGRAPHY["font_family"]}; line-height:1.5;">'
+            f'Awaiting first WF 20 run. Angles will appear here once the surfacing pipeline executes.</div>'
+            f'</div>',
+            unsafe_allow_html=True,
         )
-        st.caption("Awaiting first WF 20 run")
     else:
-        metric_card(
-            "Unique Angles Surfaced This Week",
-            nsm["this_week"],
-            delta=nsm["delta"],
-            color=COLORS["primary"],
+        _nsm_value = str(nsm["this_week"])
+        if nsm["delta"] != 0:
+            _arrow = "\u25b2" if nsm["delta"] > 0 else "\u25bc"
+            _d_color = COLORS["success"] if nsm["delta"] > 0 else COLORS["error"]
+            _sign = "+" if nsm["delta"] > 0 else ""
+            _nsm_delta_html = (
+                f'<div style="font-size:{TYPOGRAPHY["size"]["sm"]}; color:{_d_color}; '
+                f'margin-top:6px; font-family:{TYPOGRAPHY["font_family"]}; font-weight:500;">'
+                f'{_arrow} {_sign}{nsm["delta"]} vs prior week</div>'
+            )
+        else:
+            _nsm_delta_html = (
+                f'<div style="font-size:{TYPOGRAPHY["size"]["sm"]}; color:{COLORS["text_hint"]}; '
+                f'margin-top:6px; font-family:{TYPOGRAPHY["font_family"]};">\u2014 No change</div>'
+            )
+        st.markdown(
+            f'<div style="background: linear-gradient(135deg, {COLORS["surface"]} 0%, rgba(212,160,60,0.08) 100%); '
+            f'border:1px solid rgba(212,160,60,0.25); border-left:4px solid {COLORS["primary"]}; '
+            f'border-radius:{BORDERS["radius_lg"]}; padding:24px 28px; '
+            f'box-shadow:{SHADOWS["md"]}, {SHADOWS["glow_gold"]};">'
+            f'<div style="font-size:{TYPOGRAPHY["size"]["xs"]}; color:{COLORS["primary_light"]}; '
+            f'text-transform:uppercase; letter-spacing:0.08em; font-weight:600; '
+            f'margin-bottom:8px; font-family:{TYPOGRAPHY["font_family"]};">North Star Metric</div>'
+            f'<div style="font-family:{TYPOGRAPHY["font_family_display"]}; font-size:clamp(2rem, 4vw, 3.5rem); '
+            f'font-weight:700; color:{COLORS["text_primary"]}; line-height:1.1;">{_nsm_value}</div>'
+            f'<div style="font-size:{TYPOGRAPHY["size"]["base"]}; color:{COLORS["text_secondary"]}; '
+            f'margin-top:4px; font-family:{TYPOGRAPHY["font_family"]};">unique angles surfaced this week</div>'
+            f'{_nsm_delta_html}'
+            f'</div>',
+            unsafe_allow_html=True,
         )
 with nsm_right:
+    # NSM sparkline (6-week history)
+    _sparkline_data = get_nsm_weekly_history(weeks=6)
+    _has_data = any(d["count"] > 0 for d in _sparkline_data)
+    if _has_data:
+        import plotly.graph_objects as go
+        _fig = go.Figure()
+        _fig.add_trace(go.Scatter(
+            x=[d["week_start"] for d in _sparkline_data],
+            y=[d["count"] for d in _sparkline_data],
+            mode="lines",
+            line=dict(color=COLORS["primary"], width=2),
+            fill="tozeroy",
+            fillcolor="rgba(212,160,60,0.12)",
+            hovertemplate="%{x}: %{y} angles<extra></extra>",
+        ))
+        _fig.update_layout(
+            height=80,
+            margin=dict(l=0, r=0, t=0, b=0),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            xaxis=dict(visible=False),
+            yaxis=dict(visible=False),
+            showlegend=False,
+        )
+        st.plotly_chart(_fig, use_container_width=True, config={"displayModeBar": False})
+
+    # Target badge
     st.markdown(
-        f'<div style="padding:12px 16px; background:{COLORS["surface"]}; '
-        f'border:1px solid {COLORS["border"]}; border-radius:{BORDERS["radius_md"]}; '
-        f'box-shadow:{SHADOWS["sm"]};">'
-        f'<div style="font-size:{TYPOGRAPHY["size"]["xs"]}; color:{COLORS["text_secondary"]}; '
-        f'text-transform:uppercase; letter-spacing:0.03em; font-weight:600; margin-bottom:4px;">'
-        f'North Star Metric</div>'
-        f'<div style="font-size:{TYPOGRAPHY["size"]["sm"]}; color:{COLORS["text_hint"]};">'
-        f'Creative angles surfaced for the team each week. '
-        f'Target: growing week-over-week.</div>'
-        f'</div>',
+        f'<div style="display:inline-block; padding:3px 12px; '
+        f'border-radius:{BORDERS["radius_pill"]}; '
+        f'font-size:{TYPOGRAPHY["size"]["xs"]}; font-weight:600; '
+        f'color:{COLORS["primary_light"]}; background:rgba(212,160,60,0.12); '
+        f'letter-spacing:0.04em; text-transform:uppercase;">'
+        f'TARGET: WoW Growth</div>',
         unsafe_allow_html=True,
     )
 
@@ -86,8 +145,6 @@ with col4:
     band_short = band_name[:5] + "." if len(band_name) > 8 else band_name
     metric_card("Quality (7d)", f"{median} — {band_short}",
                 delta=median - prior["median_quality"], color=band_color)
-
-styled_divider()
 
 # --- Section 2 & 3: Top quotes + Trending ---
 left, right = st.columns([3, 2])

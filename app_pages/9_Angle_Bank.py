@@ -3,11 +3,13 @@
 import json
 from html import escape as _esc
 import streamlit as st
-from utils.auth import check_password
+from utils.auth import check_password, get_current_user
 from utils.theme import inject_theme, styled_divider, COLORS, TYPOGRAPHY, SPACING, SHADOWS, BORDERS
 from utils.database import query_table
 from utils.constants import CONTENT_TYPE_COLORS, INTENT_COLORS, FUNNEL_COLORS
-from utils.queries import get_nsm_weekly_count, update_angle_feedback, get_ledger_statuses
+from utils.queries import (
+    get_nsm_weekly_count, update_angle_feedback, get_ledger_detail, get_feedback_stats,
+)
 from components.pagination import paginated_controls
 
 if not check_password():
@@ -27,20 +29,48 @@ if _nsm["this_week"] > 0:
         _d_color = COLORS["success"] if _nsm["delta"] > 0 else COLORS["error"]
         _sign = "+" if _nsm["delta"] > 0 else ""
         _delta_html = (
-            f' <span style="font-size:0.85rem; color:{_d_color};">'
+            f' <span style="font-size:{TYPOGRAPHY["size"]["xs"]}; color:{_d_color}; font-weight:600;">'
             f'{_arrow} {_sign}{_nsm["delta"]} vs last week</span>'
         )
     st.markdown(
-        f'<div style="font-size:1.1rem; font-weight:600; color:{COLORS["primary"]}; '
-        f'margin-bottom:8px;">'
-        f'{_nsm["this_week"]} unique angle{"s" if _nsm["this_week"] != 1 else ""} '
-        f'surfaced this week{_delta_html}</div>',
+        f'<div style="display:flex; align-items:center; gap:12px; padding:12px 20px; '
+        f'background:linear-gradient(90deg, rgba(212,160,60,0.10) 0%, transparent 100%); '
+        f'border-left:3px solid {COLORS["primary"]}; border-radius:{BORDERS["radius_sm"]}; '
+        f'margin-bottom:12px;">'
+        f'<span style="font-family:{TYPOGRAPHY["font_family_display"]}; font-size:1.5rem; '
+        f'font-weight:700; color:{COLORS["primary"]};">{_nsm["this_week"]}</span>'
+        f'<span style="font-size:{TYPOGRAPHY["size"]["sm"]}; color:{COLORS["text_secondary"]}; '
+        f'font-weight:500;">unique angle{"s" if _nsm["this_week"] != 1 else ""} '
+        f'surfaced this week{_delta_html}</span>'
+        f'</div>',
         unsafe_allow_html=True,
     )
 else:
+    # Designed empty state — dashed border, muted tones
     st.markdown(
-        f'<div style="font-size:0.9rem; color:{COLORS["text_hint"]}; margin-bottom:8px;">'
-        f'No angles surfaced yet this week. Awaiting WF 20 run.</div>',
+        f'<div style="padding:24px 20px; border:1px dashed rgba(212,160,60,0.30); '
+        f'border-radius:{BORDERS["radius_md"]}; background:{COLORS["surface"]}; '
+        f'margin-bottom:12px; text-align:center; '
+        f'box-shadow:{SHADOWS["sm"]};">'
+        f'<div style="font-size:1.5rem; margin-bottom:8px; opacity:0.5;">&#128161;</div>'
+        f'<div style="font-size:{TYPOGRAPHY["size"]["sm"]}; color:{COLORS["text_hint"]}; '
+        f'line-height:1.6;">'
+        f'No angles surfaced yet this week. '
+        f'<span style="color:{COLORS["text_secondary"]};">Run WF 20 from n8n to generate the first batch.</span>'
+        f'</div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+# --- Feedback counter ---
+_fb_stats = get_feedback_stats()
+if _fb_stats["total"] > 0:
+    st.markdown(
+        f'<div style="font-size:{TYPOGRAPHY["size"]["sm"]}; color:{COLORS["text_secondary"]}; '
+        f'padding:4px 0 8px 0;">'
+        f'{_fb_stats["reviewed"]} of {_fb_stats["total"]} reviewed'
+        f' &middot; Team used <strong style="color:{COLORS["primary"]};">{_fb_stats["used_this_month"]}</strong> this month'
+        f'</div>',
         unsafe_allow_html=True,
     )
 
@@ -173,10 +203,10 @@ def angle_card(row: dict, content: dict):
         + '</div>'
     ) if meta_parts else ""
 
-    # Full card
+    # Full card — no bottom margin when feedback buttons follow
     st.markdown(
         f'<div style="border:1px solid {COLORS["border"]}; border-radius:{BORDERS["radius_md"]}; '
-        f'padding:16px 20px; margin-bottom:12px; border-left:4px solid {ct_color}; '
+        f'padding:16px 20px; margin-bottom:4px; border-left:4px solid {ct_color}; '
         f'background:{COLORS["surface"]}; box-shadow:{SHADOWS["sm"]};">'
         f'<div style="margin-bottom:8px;">{badges_html}</div>'
         f'<div style="font-size:1.05rem; font-weight:700; color:{COLORS["text_primary"]}; '
@@ -296,7 +326,21 @@ for row in rows:
 total = len(filtered)
 
 if total == 0:
-    st.info("No creative angles found. Run WF 20 manually from n8n to generate the first batch.")
+    # Designed empty state
+    st.markdown(
+        f'<div style="padding:32px 20px; border:1px dashed {COLORS["border"]}; '
+        f'border-radius:{BORDERS["radius_md"]}; background:{COLORS["surface"]}; '
+        f'text-align:center; box-shadow:{SHADOWS["sm"]};">'
+        f'<div style="font-size:1.8rem; margin-bottom:12px; opacity:0.4;">&#128161;</div>'
+        f'<div style="font-size:{TYPOGRAPHY["size"]["base"]}; color:{COLORS["text_hint"]}; '
+        f'line-height:1.6; max-width:400px; margin:0 auto;">'
+        f'No creative angles found matching your filters. '
+        f'Try adjusting the date range or quality threshold, '
+        f'or run WF 20 from n8n to generate new angles.'
+        f'</div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
 else:
     # Summary metrics
     from components.cards import metric_card
@@ -326,7 +370,6 @@ else:
     )
     st.caption(ct_summary)
 
-    from utils.theme import styled_divider
     styled_divider()
 
     # Paginate
@@ -356,12 +399,14 @@ else:
     start_idx = page_num * page_size
     end_idx = min(start_idx + page_size, total)
 
-    # Pre-fetch ledger statuses for this page's transcript IDs
+    # Pre-fetch ledger detail for this page's transcript IDs
     page_rows = filtered[start_idx:end_idx]
     page_tids = tuple(
         r.get("source_transcript_id", "") for r in page_rows if r.get("source_transcript_id")
     )
-    ledger_map = get_ledger_statuses(page_tids) if page_tids else {}
+    ledger_map = get_ledger_detail(page_tids) if page_tids else {}
+
+    current_user = get_current_user()
 
     for i, row in enumerate(page_rows):
         content = _parse_content(row)
@@ -369,32 +414,97 @@ else:
 
         # Feedback buttons (only for rows in surfacing_ledger)
         sid = row.get("source_transcript_id", "")
-        ledger_status = ledger_map.get(sid)
+        ledger_info = ledger_map.get(sid, {})
+        ledger_status = ledger_info.get("usage_status") if ledger_info else None
 
         if ledger_status == "surfaced":
-            bcol1, bcol2, bcol3 = st.columns([1, 1, 4])
+            # Comment input + action buttons
+            comment = st.text_input(
+                "Optional comment",
+                key=f"comment_{start_idx + i}",
+                placeholder="Why this angle works (or doesn't)...",
+                label_visibility="collapsed",
+            )
+            bcol1, bcol2, bcol3 = st.columns([1, 1, 2])
             with bcol1:
                 if st.button(
-                    "\u2705 Used in Campaign",
+                    "\u2713  Used in Campaign",
                     key=f"used_{start_idx + i}",
                     type="primary",
+                    use_container_width=True,
                 ):
-                    update_angle_feedback(sid, "used")
+                    update_angle_feedback(sid, "used", comment=comment or None, user_email=current_user)
                     st.toast("Marked as Used!")
                     st.rerun()
             with bcol2:
-                if st.button("\u274c Pass", key=f"pass_{start_idx + i}"):
-                    update_angle_feedback(sid, "passed")
+                if st.button(
+                    "Pass",
+                    key=f"pass_{start_idx + i}",
+                    use_container_width=True,
+                ):
+                    update_angle_feedback(sid, "passed", comment=comment or None, user_email=current_user)
                     st.toast("Marked as Pass")
                     st.rerun()
+            # Spacing after buttons
+            st.markdown('<div style="margin-bottom:8px;"></div>', unsafe_allow_html=True)
+
         elif ledger_status in ("used", "passed"):
-            badge_color = COLORS["success"] if ledger_status == "used" else COLORS["text_hint"]
-            hc = badge_color.lstrip("#")
-            r, g, b = int(hc[:2], 16), int(hc[2:4], 16), int(hc[4:6], 16)
-            bg = f"rgba({r},{g},{b},0.12)"
+            if ledger_status == "used":
+                _b_icon = "\u2713"
+                _b_color = COLORS["success"]
+                _b_bg = "rgba(0,184,148,0.10)"
+                _b_border = "rgba(0,184,148,0.25)"
+                _b_shadow = "0 0 8px rgba(0,184,148,0.12)"
+                _b_label = "Used in Campaign"
+            else:
+                _b_icon = "\u2014"
+                _b_color = COLORS["text_hint"]
+                _b_bg = "rgba(107,114,128,0.08)"
+                _b_border = "rgba(107,114,128,0.20)"
+                _b_shadow = "none"
+                _b_label = "Passed"
+
+            # Status pill
+            _fb_by = ledger_info.get("feedback_by", "")
+            _fb_at = (ledger_info.get("feedback_at") or "")[:10]
+            _attribution = ""
+            if _fb_by or _fb_at:
+                _parts = []
+                if _fb_by:
+                    _parts.append(_esc(_fb_by))
+                if _fb_at:
+                    _parts.append(_fb_at)
+                _attribution = (
+                    f' <span style="font-size:{TYPOGRAPHY["size"]["xs"]}; color:{COLORS["text_hint"]}; '
+                    f'font-weight:400; text-transform:none; letter-spacing:normal;">'
+                    f'&middot; {" &middot; ".join(_parts)}</span>'
+                )
+
             st.markdown(
-                f'<span style="display:inline-block; padding:4px 14px; border-radius:12px; '
-                f'font-size:0.8rem; font-weight:600; color:{badge_color}; background:{bg}; '
-                f'margin-bottom:8px;">{ledger_status.upper()}</span>',
+                f'<div style="display:inline-flex; align-items:center; gap:6px; '
+                f'padding:5px 16px; border-radius:{BORDERS["radius_pill"]}; '
+                f'font-size:{TYPOGRAPHY["size"]["xs"]}; font-weight:{TYPOGRAPHY["weight"]["semibold"]}; '
+                f'color:{_b_color}; background:{_b_bg}; border:1px solid {_b_border}; '
+                f'letter-spacing:{TYPOGRAPHY["letter_spacing"]["wide"]}; text-transform:uppercase; '
+                f'box-shadow:{_b_shadow};">'
+                f'{_b_icon} {_b_label}{_attribution}</div>',
                 unsafe_allow_html=True,
             )
+
+            # Show comment if present
+            _fb_comment = ledger_info.get("feedback_comment")
+            if _fb_comment:
+                st.markdown(
+                    f'<div style="margin:6px 0 8px 0; padding:8px 14px; '
+                    f'background:{COLORS["surface_elevated"]}; '
+                    f'border-left:3px solid {COLORS["border"]}; border-radius:6px; '
+                    f'font-size:{TYPOGRAPHY["size"]["sm"]}; color:{COLORS["text_secondary"]}; '
+                    f'font-style:italic; line-height:1.5;">'
+                    f'&ldquo;{_esc(_fb_comment)}&rdquo;</div>',
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.markdown('<div style="margin-bottom:8px;"></div>', unsafe_allow_html=True)
+        else:
+            # No ledger entry — just spacing
+            st.markdown('<div style="margin-bottom:8px;"></div>', unsafe_allow_html=True)

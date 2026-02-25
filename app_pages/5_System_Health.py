@@ -62,14 +62,16 @@ with st.spinner("Loading summary..."):
 
 styled_divider()
 
-if not st.session_state.get("admin_authenticated"):
-    st.markdown("#### 🔐 Admin View")
-    st.caption(
-        "Enter the admin password to view cost tracking, quality distribution, "
-        "calibration data, and pipeline throughput."
-    )
-
 if not check_admin():
+    st.markdown(
+        f'<div style="padding:20px; background:{COLORS["surface"]}; '
+        f'border:1px solid {COLORS["border"]}; border-radius:12px; text-align:center;">'
+        f'<div style="font-size:1.2rem; margin-bottom:8px;">&#128274;</div>'
+        f'<div style="font-size:0.875rem; color:{COLORS["text_secondary"]};">'
+        f'Restricted to admin users. Contact your administrator for access.</div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
     st.stop()
 
 from utils.database import query_table, query_df
