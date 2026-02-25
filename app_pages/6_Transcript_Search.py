@@ -43,9 +43,9 @@ if submitted and keyword.strip():
         results = client.rpc(
             "search_transcripts",
             {
-                "query": keyword.strip(),
+                "keyword": keyword.strip(),
                 "min_quality": min_quality,
-                "max_results": max_results,
+                "result_limit": max_results,
             },
         ).execute().data
 
@@ -64,10 +64,9 @@ if submitted and keyword.strip():
         for row in results:
             quality = row.get("quality_score") or 0
             case_type = row.get("case_type") or "Unknown"
-            call_date = row.get("call_start_date", "")
-            headline = row.get("headline") or ""
-            # snippet comes from ts_headline and may contain <b> highlight tags — render as HTML
+            call_date = row.get("analyzed_at", "")
             snippet = row.get("snippet") or ""
+            match_count = row.get("match_count") or 0
 
             # Quality badge
             if quality >= 75:
@@ -91,16 +90,24 @@ if submitted and keyword.strip():
                 if date_str
                 else ""
             )
-            headline_html = (
-                f'<div style="font-weight:600;font-size:0.9375rem;margin:8px 0 4px;color:{COLORS["text_primary"]};">'
-                f"{headline}</div>"  # headline may contain <b> tags from ts_headline
-                if headline
+            match_html = (
+                f'<span style="font-size:0.75rem;color:{COLORS["text_hint"]};">{match_count} match{"es" if match_count != 1 else ""}</span>'
+                if match_count
                 else ""
             )
+            # snippet uses ** delimiters from ts_headline — convert to <b> for HTML
+            snippet_display = ""
+            if snippet:
+                parts = snippet.split("**")
+                for i, part in enumerate(parts):
+                    if i % 2 == 1:
+                        snippet_display += f"<b>{_esc(part)}</b>"
+                    else:
+                        snippet_display += _esc(part)
             snippet_html = (
                 f'<div style="font-size:0.875rem;color:{COLORS["text_secondary"]};line-height:1.6;">'
-                f"{snippet}</div>"  # snippet contains <b> highlight tags from ts_headline
-                if snippet
+                f"{snippet_display}</div>"
+                if snippet_display
                 else '<div class="wb-quote-meta">No excerpt available.</div>'
             )
 
@@ -111,8 +118,8 @@ if submitted and keyword.strip():
                         <span class="wb-badge {q_class}">Quality: {quality}</span>
                         <span class="wb-badge wb-badge-info">{_esc(case_type)}</span>
                         {date_html}
+                        {match_html}
                     </div>
-                    {headline_html}
                     {snippet_html}
                 </div>
                 """,
