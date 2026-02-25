@@ -6,13 +6,13 @@ import pandas as pd
 from datetime import datetime, timedelta
 
 from utils.auth import check_password
-from utils.theme import inject_theme, styled_divider, styled_header, COLORS
+from utils.theme import inject_theme, styled_divider, styled_header, COLORS, BORDERS, TYPOGRAPHY, SHADOWS, SPACING
 from components.cards import metric_card, quote_card
 from components.charts import quality_histogram, volume_trend, case_type_pie, trending_bar_chart
 from utils.constants import humanize, quality_band
 from utils.queries import (
     get_weekly_metric_counts, get_prior_period_metrics, fetch_quotes, get_daily_volume,
-    get_last_updated,
+    get_last_updated, get_nsm_weekly_count,
 )
 from utils.database import query_table, get_supabase
 
@@ -29,6 +29,41 @@ else:
     st.caption("Curated content picks for the creative team.")
 
 client = get_supabase()
+
+# --- North Star Metric (top billboard) ---
+nsm = get_nsm_weekly_count()
+nsm_left, nsm_right = st.columns([2, 1])
+with nsm_left:
+    if nsm["this_week"] == 0 and nsm["last_week"] == 0:
+        metric_card(
+            "Unique Angles Surfaced This Week",
+            "0",
+            color=COLORS["primary"],
+        )
+        st.caption("Awaiting first WF 20 run")
+    else:
+        metric_card(
+            "Unique Angles Surfaced This Week",
+            nsm["this_week"],
+            delta=nsm["delta"],
+            color=COLORS["primary"],
+        )
+with nsm_right:
+    st.markdown(
+        f'<div style="padding:12px 16px; background:{COLORS["surface"]}; '
+        f'border:1px solid {COLORS["border"]}; border-radius:{BORDERS["radius_md"]}; '
+        f'box-shadow:{SHADOWS["sm"]};">'
+        f'<div style="font-size:{TYPOGRAPHY["size"]["xs"]}; color:{COLORS["text_secondary"]}; '
+        f'text-transform:uppercase; letter-spacing:0.03em; font-weight:600; margin-bottom:4px;">'
+        f'North Star Metric</div>'
+        f'<div style="font-size:{TYPOGRAPHY["size"]["sm"]}; color:{COLORS["text_hint"]};">'
+        f'Creative angles surfaced for the team each week. '
+        f'Target: growing week-over-week.</div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+styled_divider()
 
 # --- Section 1: Metric cards ---
 with st.spinner("Loading metrics..."):

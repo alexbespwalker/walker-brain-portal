@@ -4,9 +4,10 @@ import json
 from html import escape as _esc
 import streamlit as st
 from utils.auth import check_password
-from utils.theme import inject_theme, COLORS, TYPOGRAPHY, SPACING, SHADOWS, BORDERS
+from utils.theme import inject_theme, styled_divider, COLORS, TYPOGRAPHY, SPACING, SHADOWS, BORDERS
 from utils.database import query_table
 from utils.constants import CONTENT_TYPE_COLORS, INTENT_COLORS, FUNNEL_COLORS
+from utils.queries import get_nsm_weekly_count, update_angle_feedback, get_ledger_statuses
 from components.pagination import paginated_controls
 
 if not check_password():
@@ -16,6 +17,32 @@ inject_theme()
 
 st.title(":bulb: Angle Bank")
 st.caption("Creative angle briefs generated from high-quality intake calls.")
+
+# --- NSM Header Stat ---
+_nsm = get_nsm_weekly_count()
+if _nsm["this_week"] > 0:
+    _delta_html = ""
+    if _nsm["delta"] != 0:
+        _arrow = "\u25b2" if _nsm["delta"] > 0 else "\u25bc"
+        _d_color = COLORS["success"] if _nsm["delta"] > 0 else COLORS["error"]
+        _sign = "+" if _nsm["delta"] > 0 else ""
+        _delta_html = (
+            f' <span style="font-size:0.85rem; color:{_d_color};">'
+            f'{_arrow} {_sign}{_nsm["delta"]} vs last week</span>'
+        )
+    st.markdown(
+        f'<div style="font-size:1.1rem; font-weight:600; color:{COLORS["primary"]}; '
+        f'margin-bottom:8px;">'
+        f'{_nsm["this_week"]} unique angle{"s" if _nsm["this_week"] != 1 else ""} '
+        f'surfaced this week{_delta_html}</div>',
+        unsafe_allow_html=True,
+    )
+else:
+    st.markdown(
+        f'<div style="font-size:0.9rem; color:{COLORS["text_hint"]}; margin-bottom:8px;">'
+        f'No angles surfaced yet this week. Awaiting WF 20 run.</div>',
+        unsafe_allow_html=True,
+    )
 
 # --- Constants ---
 CONTENT_TYPE_LABELS = {
@@ -329,6 +356,45 @@ else:
     start_idx = page_num * page_size
     end_idx = min(start_idx + page_size, total)
 
-    for row in filtered[start_idx:end_idx]:
+    # Pre-fetch ledger statuses for this page's transcript IDs
+    page_rows = filtered[start_idx:end_idx]
+    page_tids = tuple(
+        r.get("source_transcript_id", "") for r in page_rows if r.get("source_transcript_id")
+    )
+    ledger_map = get_ledger_statuses(page_tids) if page_tids else {}
+
+    for i, row in enumerate(page_rows):
         content = _parse_content(row)
         angle_card(row, content)
+
+        # Feedback buttons (only for rows in surfacing_ledger)
+        sid = row.get("source_transcript_id", "")
+        ledger_status = ledger_map.get(sid)
+
+        if ledger_status == "surfaced":
+            bcol1, bcol2, bcol3 = st.columns([1, 1, 4])
+            with bcol1:
+                if st.button(
+                    "\u2705 Used in Campaign",
+                    key=f"used_{start_idx + i}",
+                    type="primary",
+                ):
+                    update_angle_feedback(sid, "used")
+                    st.toast("Marked as Used!")
+                    st.rerun()
+            with bcol2:
+                if st.button("\u274c Pass", key=f"pass_{start_idx + i}"):
+                    update_angle_feedback(sid, "passed")
+                    st.toast("Marked as Pass")
+                    st.rerun()
+        elif ledger_status in ("used", "passed"):
+            badge_color = COLORS["success"] if ledger_status == "used" else COLORS["text_hint"]
+            hc = badge_color.lstrip("#")
+            r, g, b = int(hc[:2], 16), int(hc[2:4], 16), int(hc[4:6], 16)
+            bg = f"rgba({r},{g},{b},0.12)"
+            st.markdown(
+                f'<span style="display:inline-block; padding:4px 14px; border-radius:12px; '
+                f'font-size:0.8rem; font-weight:600; color:{badge_color}; background:{bg}; '
+                f'margin-bottom:8px;">{ledger_status.upper()}</span>',
+                unsafe_allow_html=True,
+            )

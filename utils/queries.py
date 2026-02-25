@@ -592,6 +592,87 @@ def count_calls(
     return q.execute().count or 0
 
 
+# ---------------------------------------------------------------------------
+# Surfacing Ledger / NSM
+# ---------------------------------------------------------------------------
+
+@st.cache_data(ttl=300)
+def get_nsm_weekly_count() -> dict:
+    """North Star Metric: unique angles surfaced this week vs last week.
+
+    Returns dict with keys: this_week, last_week, delta.
+    """
+    from datetime import datetime, timedelta, timezone
+    client = get_supabase()
+    now = datetime.now(timezone.utc)
+    week_start = (now - timedelta(days=7)).isoformat()
+    prior_start = (now - timedelta(days=14)).isoformat()
+
+    this_week_res = (
+        client.table("surfacing_ledger")
+        .select("source_transcript_id", count="exact")
+        .gte("surfaced_at", week_start)
+        .execute()
+    )
+    last_week_res = (
+        client.table("surfacing_ledger")
+        .select("source_transcript_id", count="exact")
+        .gte("surfaced_at", prior_start)
+        .lt("surfaced_at", week_start)
+        .execute()
+    )
+    this_week = this_week_res.count or 0
+    last_week = last_week_res.count or 0
+    return {
+        "this_week": this_week,
+        "last_week": last_week,
+        "delta": this_week - last_week,
+    }
+
+
+def update_angle_feedback(transcript_id: str, status: str) -> bool:
+    """Update usage_status + feedback_at on a surfacing_ledger row.
+
+    Only updates rows still in 'surfaced' status (idempotent).
+    """
+    from datetime import datetime, timezone
+    client = get_supabase()
+    result = (
+        client.table("surfacing_ledger")
+        .update({
+            "usage_status": status,
+            "feedback_at": datetime.now(timezone.utc).isoformat(),
+        })
+        .eq("source_transcript_id", transcript_id)
+        .eq("usage_status", "surfaced")
+        .execute()
+    )
+    return len(result.data) > 0
+
+
+@st.cache_data(ttl=120)
+def get_ledger_statuses(transcript_ids: tuple) -> dict:
+    """Fetch usage_status for a batch of transcript IDs from surfacing_ledger.
+
+    Args:
+        transcript_ids: tuple of transcript ID strings (tuple for cache hashability).
+
+    Returns:
+        Dict mapping source_transcript_id -> usage_status.
+    """
+    if not transcript_ids:
+        return {}
+    client = get_supabase()
+    rows = (
+        client.table("surfacing_ledger")
+        .select("source_transcript_id, usage_status")
+        .in_("source_transcript_id", list(transcript_ids))
+        .execute()
+        .data
+    )
+    return {r["source_transcript_id"]: r["usage_status"] for r in rows}
+
+
 def count_explorer_rows(
     case_types: list[str] | None = None,
     min_quality: int = 0,
