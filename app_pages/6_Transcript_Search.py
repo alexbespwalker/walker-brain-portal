@@ -39,15 +39,20 @@ with st.form("transcript_search_form"):
 # --- Results ---
 if submitted and keyword.strip():
     with st.spinner("Searching transcripts..."):
-        client = get_supabase()
-        results = client.rpc(
-            "search_transcripts",
-            {
-                "keyword": keyword.strip(),
-                "min_quality": min_quality,
-                "result_limit": max_results,
-            },
-        ).execute().data
+        try:
+            client = get_supabase()
+            results = client.rpc(
+                "search_transcripts",
+                {
+                    "keyword": keyword.strip(),
+                    "min_quality": min_quality,
+                    "result_limit": max_results,
+                },
+            ).execute().data
+        except Exception as e:
+            results = None
+            st.error(f"Search failed: {e}")
+            st.caption("Try again — this may be a transient connection issue.")
 
     if not results:
         empty_state(
