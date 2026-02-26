@@ -160,6 +160,7 @@ with right:
             .select("objection_categories")
             .not_.is_("objection_categories", "null")
             .gte("analyzed_at", cutoff_7d)
+            .limit(10000)
             .execute()
             .data
         )
@@ -195,6 +196,7 @@ with right:
             .select("case_type")
             .not_.is_("case_type", "null")
             .gte("analyzed_at", cutoff_7d)
+            .limit(10000)
             .execute()
             .data
         )
@@ -236,6 +238,7 @@ with right:
             .select("testimonial_type")
             .eq("testimonial_candidate", True)
             .gte("analyzed_at", cutoff_7d)
+            .limit(10000)
             .execute()
             .data
         )
@@ -265,6 +268,7 @@ with right:
             .select("repeated_questions_from_caller")
             .not_.is_("repeated_questions_from_caller", "null")
             .gte("analyzed_at", cutoff_7d)
+            .limit(10000)
             .execute()
             .data
         )
@@ -318,6 +322,7 @@ with chart_right:
             .select("quality_score")
             .not_.is_("quality_score", "null")
             .gte("analyzed_at", cutoff_7d)
+            .limit(10000)
             .execute()
             .data
         )
@@ -340,6 +345,7 @@ try:
         .select("case_type")
         .not_.is_("case_type", "null")
         .gte("analyzed_at", cutoff_7d)
+        .limit(10000)
         .execute()
         .data
     )

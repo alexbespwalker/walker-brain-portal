@@ -150,7 +150,7 @@ with st.spinner("Loading quality analytics..."):
             .select("quality_score, confidence_score")
             .not_.is_("quality_score", "null")
             .order("analyzed_at", desc=True)
-            .limit(2000)
+            .limit(10000)
             .execute()
             .data
         )

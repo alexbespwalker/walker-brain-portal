@@ -27,7 +27,7 @@ def _get_tag_counts() -> dict[str, int]:
             _client.table("analysis_results")
             .select("suggested_tags")
             .not_.is_("suggested_tags", "null")
-            .limit(1000)
+            .limit(10000)
             .execute()
             .data
         )
@@ -217,6 +217,7 @@ with st.spinner("Loading objection data..."):
                 .select("objection_categories")
                 .not_.is_("objection_categories", "null")
                 .gte("analyzed_at", cutoff_7d)
+                .limit(10000)
                 .execute()
                 .data
             )

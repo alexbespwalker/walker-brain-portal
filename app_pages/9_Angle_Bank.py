@@ -277,7 +277,7 @@ with st.spinner("Loading angles..."):
         select="*",
         filters=filters,
         order="-created_at",
-        limit=200,
+        limit=1000,
     )
 
 # --- Post-fetch filters (JSONB fields + max quality) ---
