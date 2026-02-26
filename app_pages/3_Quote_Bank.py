@@ -4,7 +4,7 @@ import io
 import pandas as pd
 import streamlit as st
 from utils.auth import check_password
-from utils.theme import inject_theme
+from utils.theme import inject_theme, empty_state
 
 if not check_password():
     st.stop()
@@ -69,7 +69,7 @@ with st.spinner("Loading quotes..."):
     )
 
 if not quotes:
-    st.info("No quotes found matching your filters.")
+    empty_state("&#128172;", "No quotes found matching your filters.", "Try broadening your search criteria.")
 else:
     # --- Header row: count + export controls ---
     sel_count = sum(

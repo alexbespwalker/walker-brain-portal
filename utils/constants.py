@@ -200,7 +200,12 @@ def get_badge_class(tone: str | None) -> str:
 
 
 def is_falsy_sentinel(value) -> bool:
-    """Return True if value is a falsy sentinel that should be hidden from display."""
+    """Return True if value is a falsy sentinel that should be hidden from display.
+
+    Note: numeric 0 is NOT a sentinel — it's a valid score/value.
+    """
+    if isinstance(value, (int, float)):
+        return False
     if value in _FALSY_SENTINELS:
         return True
     if isinstance(value, str) and value.strip().lower() in _FALSY_SENTINELS:

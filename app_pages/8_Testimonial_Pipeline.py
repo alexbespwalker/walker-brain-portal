@@ -63,7 +63,7 @@ for item in all_items:
 cols = st.columns(len(KANBAN_STATUSES))
 for i, status in enumerate(KANBAN_STATUSES):
     items = by_status[status]
-    color = TESTIMONIAL_STATUS_COLORS.get(status, "#6B7280")
+    color = TESTIMONIAL_STATUS_COLORS.get(status, COLORS["text_hint"])
     with cols[i]:
         st.markdown(
             f'<div class="wb-kanban-header" style="background:{color}20; color:{color};">'

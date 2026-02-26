@@ -4,7 +4,7 @@ import json
 import streamlit as st
 import pandas as pd
 from utils.auth import check_password
-from utils.theme import inject_theme, styled_header
+from utils.theme import inject_theme, styled_header, empty_state
 
 if not check_password():
     st.stop()
@@ -79,7 +79,7 @@ with st.spinner("Searching calls..."):
     )
 
 if not results:
-    st.info("No calls found matching your filters.")
+    empty_state("&#128269;", "No calls found matching your filters.", "Try broadening your search criteria.")
 else:
     st.markdown(f"**{len(results)} calls** (page {page + 1})")
 

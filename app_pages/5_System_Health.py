@@ -81,35 +81,8 @@ from components.charts import (
 
 client = get_supabase()
 
-# Fix Plotly "undefined" title bug (Streamlit/Plotly.js integration issue).
-# Injected inline because Streamlit caches module imports and may not pick up
-# new exports from utils.theme until process restart.
-import streamlit.components.v1 as _components
-_components.html(
-    """
-    <script>
-    (function() {
-        function hideUndefinedTitles() {
-            var titles = window.parent.document.querySelectorAll('.g-gtitle');
-            for (var i = 0; i < titles.length; i++) {
-                var txt = titles[i].textContent || '';
-                if (txt.trim() === 'undefined') {
-                    titles[i].style.display = 'none';
-                }
-            }
-        }
-        hideUndefinedTitles();
-        var observer = new MutationObserver(function() { hideUndefinedTitles(); });
-        observer.observe(window.parent.document.body, { childList: true, subtree: true });
-        setTimeout(hideUndefinedTitles, 1000);
-        setTimeout(hideUndefinedTitles, 3000);
-        setTimeout(hideUndefinedTitles, 5000);
-    })();
-    </script>
-    """,
-    height=0,
-    scrolling=False,
-)
+from utils.theme import inject_plotly_title_fix
+inject_plotly_title_fix()
 
 # --- System Status ---
 styled_header("System Status")

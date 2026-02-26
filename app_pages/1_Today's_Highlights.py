@@ -6,7 +6,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 
 from utils.auth import check_password
-from utils.theme import inject_theme, styled_divider, styled_header, COLORS, BORDERS, TYPOGRAPHY, SHADOWS, SPACING
+from utils.theme import inject_theme, styled_divider, styled_header, empty_state, COLORS, BORDERS, TYPOGRAPHY, SHADOWS, SPACING
 from components.cards import metric_card, quote_card
 from components.charts import quality_histogram, volume_trend, case_type_pie, trending_bar_chart
 from utils.constants import humanize, quality_band
@@ -37,17 +37,14 @@ with nsm_left:
     if nsm["this_week"] == 0 and nsm["last_week"] == 0:
         # Zero state: muted billboard, no gold glow, instructional text
         st.markdown(
-            f'<div style="background:{COLORS["surface"]}; '
-            f'border:1px dashed {COLORS["border"]}; border-left:4px solid {COLORS["text_hint"]}; '
-            f'border-radius:{BORDERS["radius_lg"]}; padding:24px 28px; '
-            f'box-shadow:{SHADOWS["sm"]};">'
+            f'<div class="wb-nsm-billboard-zero">'
             f'<div style="font-size:{TYPOGRAPHY["size"]["xs"]}; color:{COLORS["text_hint"]}; '
             f'text-transform:uppercase; letter-spacing:0.08em; font-weight:600; '
-            f'margin-bottom:8px; font-family:{TYPOGRAPHY["font_family"]};">North Star Metric</div>'
+            f'margin-bottom:{SPACING["sm"]}; font-family:{TYPOGRAPHY["font_family"]};">North Star Metric</div>'
             f'<div style="font-family:{TYPOGRAPHY["font_family_display"]}; font-size:clamp(1.5rem, 3vw, 2.5rem); '
             f'font-weight:700; color:{COLORS["text_hint"]}; line-height:1.1;">\u2014</div>'
             f'<div style="font-size:{TYPOGRAPHY["size"]["base"]}; color:{COLORS["text_secondary"]}; '
-            f'margin-top:6px; font-family:{TYPOGRAPHY["font_family"]}; line-height:1.5;">'
+            f'margin-top:6px; font-family:{TYPOGRAPHY["font_family"]}; line-height:{TYPOGRAPHY["line_height"]["normal"]};">'
             f'Awaiting first WF 20 run. Angles will appear here once the surfacing pipeline executes.</div>'
             f'</div>',
             unsafe_allow_html=True,
@@ -69,17 +66,14 @@ with nsm_left:
                 f'margin-top:6px; font-family:{TYPOGRAPHY["font_family"]};">\u2014 No change</div>'
             )
         st.markdown(
-            f'<div style="background: linear-gradient(135deg, {COLORS["surface"]} 0%, rgba(212,160,60,0.08) 100%); '
-            f'border:1px solid rgba(212,160,60,0.25); border-left:4px solid {COLORS["primary"]}; '
-            f'border-radius:{BORDERS["radius_lg"]}; padding:24px 28px; '
-            f'box-shadow:{SHADOWS["md"]}, {SHADOWS["glow_gold"]};">'
+            f'<div class="wb-nsm-billboard">'
             f'<div style="font-size:{TYPOGRAPHY["size"]["xs"]}; color:{COLORS["primary_light"]}; '
             f'text-transform:uppercase; letter-spacing:0.08em; font-weight:600; '
-            f'margin-bottom:8px; font-family:{TYPOGRAPHY["font_family"]};">North Star Metric</div>'
+            f'margin-bottom:{SPACING["sm"]}; font-family:{TYPOGRAPHY["font_family"]};">North Star Metric</div>'
             f'<div style="font-family:{TYPOGRAPHY["font_family_display"]}; font-size:clamp(2rem, 4vw, 3.5rem); '
             f'font-weight:700; color:{COLORS["text_primary"]}; line-height:1.1;">{_nsm_value}</div>'
             f'<div style="font-size:{TYPOGRAPHY["size"]["base"]}; color:{COLORS["text_secondary"]}; '
-            f'margin-top:4px; font-family:{TYPOGRAPHY["font_family"]};">unique angles surfaced this week</div>'
+            f'margin-top:{SPACING["xs"]}; font-family:{TYPOGRAPHY["font_family"]};">unique angles surfaced this week</div>'
             f'{_nsm_delta_html}'
             f'</div>',
             unsafe_allow_html=True,
@@ -97,7 +91,7 @@ with nsm_right:
             mode="lines",
             line=dict(color=COLORS["primary"], width=2),
             fill="tozeroy",
-            fillcolor="rgba(212,160,60,0.12)",
+            fillcolor=COLORS["tint_primary_strong"],
             hovertemplate="%{x}: %{y} angles<extra></extra>",
         ))
         _fig.update_layout(
@@ -113,12 +107,7 @@ with nsm_right:
 
     # Target badge
     st.markdown(
-        f'<div style="display:inline-block; padding:3px 12px; '
-        f'border-radius:{BORDERS["radius_pill"]}; '
-        f'font-size:{TYPOGRAPHY["size"]["xs"]}; font-weight:600; '
-        f'color:{COLORS["primary_light"]}; background:rgba(212,160,60,0.12); '
-        f'letter-spacing:0.04em; text-transform:uppercase;">'
-        f'TARGET: WoW Growth</div>',
+        '<div class="wb-target-badge">TARGET: WoW Growth</div>',
         unsafe_allow_html=True,
     )
 

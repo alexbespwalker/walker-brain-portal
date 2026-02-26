@@ -7,7 +7,7 @@ import streamlit as st
 
 from utils.auth import check_password
 from utils.database import get_supabase
-from utils.theme import inject_theme, styled_divider, styled_header, COLORS
+from utils.theme import inject_theme, styled_divider, styled_header, empty_state, COLORS
 
 if not check_password():
     st.stop()
@@ -50,9 +50,10 @@ if submitted and keyword.strip():
         ).execute().data
 
     if not results:
-        st.info(
-            f'No transcripts found for "{keyword.strip()}". '
-            "Try a different keyword or lower the minimum quality score."
+        empty_state(
+            "&#128270;",
+            f'No transcripts found for "{keyword.strip()}".',
+            "Try a different keyword or lower the minimum quality score.",
         )
     else:
         count = len(results)

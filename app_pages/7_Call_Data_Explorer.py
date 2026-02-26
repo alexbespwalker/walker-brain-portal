@@ -4,7 +4,7 @@ import json
 import streamlit as st
 import pandas as pd
 from utils.auth import check_password
-from utils.theme import inject_theme, styled_divider, styled_header
+from utils.theme import inject_theme, styled_divider, styled_header, empty_state
 
 if not check_password():
     st.stop()
@@ -85,7 +85,7 @@ with st.spinner("Loading data..."):
     )
 
 if df.empty:
-    st.info("No data found matching your filters.")
+    empty_state("&#128203;", "No data found matching your filters.", "Try broadening your filter criteria.")
 else:
     st.markdown(f"**{len(df)} rows** (page {page + 1})")
 

@@ -4,7 +4,7 @@ import json
 from html import escape as _esc
 import streamlit as st
 from utils.auth import check_password, get_current_user
-from utils.theme import inject_theme, styled_divider, COLORS, TYPOGRAPHY, SPACING, SHADOWS, BORDERS
+from utils.theme import inject_theme, styled_divider, empty_state, COLORS, TYPOGRAPHY, SPACING, SHADOWS, BORDERS
 from utils.database import query_table
 from utils.constants import CONTENT_TYPE_COLORS, INTENT_COLORS, FUNNEL_COLORS
 from utils.queries import (
@@ -33,41 +33,25 @@ if _nsm["this_week"] > 0:
             f'{_arrow} {_sign}{_nsm["delta"]} vs last week</span>'
         )
     st.markdown(
-        f'<div style="display:flex; align-items:center; gap:12px; padding:12px 20px; '
-        f'background:linear-gradient(90deg, rgba(212,160,60,0.10) 0%, transparent 100%); '
-        f'border-left:3px solid {COLORS["primary"]}; border-radius:{BORDERS["radius_sm"]}; '
-        f'margin-bottom:12px;">'
-        f'<span style="font-family:{TYPOGRAPHY["font_family_display"]}; font-size:1.5rem; '
-        f'font-weight:700; color:{COLORS["primary"]};">{_nsm["this_week"]}</span>'
-        f'<span style="font-size:{TYPOGRAPHY["size"]["sm"]}; color:{COLORS["text_secondary"]}; '
-        f'font-weight:500;">unique angle{"s" if _nsm["this_week"] != 1 else ""} '
+        f'<div class="wb-nsm-banner">'
+        f'<span class="wb-nsm-value">{_nsm["this_week"]}</span>'
+        f'<span class="wb-nsm-label">unique angle{"s" if _nsm["this_week"] != 1 else ""} '
         f'surfaced this week{_delta_html}</span>'
         f'</div>',
         unsafe_allow_html=True,
     )
 else:
-    # Designed empty state — dashed border, muted tones
-    st.markdown(
-        f'<div style="padding:24px 20px; border:1px dashed rgba(212,160,60,0.30); '
-        f'border-radius:{BORDERS["radius_md"]}; background:{COLORS["surface"]}; '
-        f'margin-bottom:12px; text-align:center; '
-        f'box-shadow:{SHADOWS["sm"]};">'
-        f'<div style="font-size:1.5rem; margin-bottom:8px; opacity:0.5;">&#128161;</div>'
-        f'<div style="font-size:{TYPOGRAPHY["size"]["sm"]}; color:{COLORS["text_hint"]}; '
-        f'line-height:1.6;">'
-        f'No angles surfaced yet this week. '
-        f'<span style="color:{COLORS["text_secondary"]};">Run WF 20 from n8n to generate the first batch.</span>'
-        f'</div>'
-        f'</div>',
-        unsafe_allow_html=True,
+    empty_state(
+        "&#128161;",
+        "No angles surfaced yet this week.",
+        "Run WF 20 from n8n to generate the first batch.",
     )
 
 # --- Feedback counter ---
 _fb_stats = get_feedback_stats()
 if _fb_stats["total"] > 0:
     st.markdown(
-        f'<div style="font-size:{TYPOGRAPHY["size"]["sm"]}; color:{COLORS["text_secondary"]}; '
-        f'padding:4px 0 8px 0;">'
+        f'<div class="wb-quote-meta" style="padding:{SPACING["xs"]} 0 {SPACING["sm"]} 0;">'
         f'{_fb_stats["reviewed"]} of {_fb_stats["total"]} reviewed'
         f' &middot; Team used <strong style="color:{COLORS["primary"]};">{_fb_stats["used_this_month"]}</strong> this month'
         f'</div>',
@@ -99,13 +83,12 @@ def _parse_content(row: dict) -> dict:
 
 
 def _badge(text: str, color: str) -> str:
-    """Return HTML for a colored badge pill."""
+    """Return HTML for a colored badge pill using theme badge class."""
     hc = color.lstrip("#")
     r, g, b = int(hc[:2], 16), int(hc[2:4], 16), int(hc[4:6], 16)
     bg = f"rgba({r},{g},{b},0.12)"
     return (
-        f'<span style="display:inline-block; padding:2px 10px; border-radius:12px; '
-        f'font-size:0.78rem; font-weight:600; color:{color}; background:{bg}; '
+        f'<span class="wb-badge" style="color:{color}; background:{bg}; '
         f'margin-right:6px; margin-bottom:4px;">{_esc(str(text))}</span>'
     )
 
@@ -150,16 +133,14 @@ def angle_card(row: dict, content: dict):
     quotes_html = ""
     if key_quotes and isinstance(key_quotes, list):
         quotes_items = "".join(
-            f'<li style="margin-bottom:6px; font-style:italic; color:{COLORS["text_secondary"]};">'
-            f'"{_esc(q)}"</li>'
+            f'<li>"{_esc(q)}"</li>'
             for q in key_quotes[:3] if q
         )
         if quotes_items:
             quotes_html = (
-                f'<div style="margin-top:10px;">'
-                f'<div style="font-size:0.78rem; font-weight:600; color:{COLORS["text_secondary"]}; '
-                f'margin-bottom:4px;">KEY QUOTES</div>'
-                f'<ul style="margin:0; padding-left:18px; font-size:0.85rem;">{quotes_items}</ul>'
+                f'<div class="wb-angle-quotes">'
+                f'<div class="wb-angle-section-label">KEY QUOTES</div>'
+                f'<ul style="margin:0; padding-left:18px;">{quotes_items}</ul>'
                 f'</div>'
             )
 
@@ -170,15 +151,11 @@ def angle_card(row: dict, content: dict):
         for phase, label in [("opening", "Opening"), ("mid", "Turning Point"), ("closing", "Closing")]:
             val = emotional_arc.get(phase, "")
             if val:
-                arc_parts.append(
-                    f'<span style="font-size:0.78rem;"><strong>{label}:</strong> {_esc(str(val))}</span>'
-                )
+                arc_parts.append(f'<span><strong>{label}:</strong> {_esc(str(val))}</span>')
         if arc_parts:
             arc_html = (
-                f'<div style="margin-top:10px; padding:8px 12px; background:{COLORS["surface_elevated"]}; '
-                f'border-radius:8px; border-left:3px solid {ct_color};">'
-                f'<div style="font-size:0.78rem; font-weight:600; color:{COLORS["text_secondary"]}; '
-                f'margin-bottom:4px;">EMOTIONAL ARC</div>'
+                f'<div class="wb-angle-arc" style="border-left:3px solid {ct_color};">'
+                f'<div class="wb-angle-section-label">EMOTIONAL ARC</div>'
                 + "<br>".join(arc_parts)
                 + '</div>'
             )
@@ -187,7 +164,7 @@ def angle_card(row: dict, content: dict):
     why_html = ""
     if why_this_angle:
         why_html = (
-            f'<div style="margin-top:10px; font-size:0.85rem; color:{COLORS["text_secondary"]};">'
+            f'<div class="wb-angle-why">'
             f'<strong>Why this works:</strong> {_esc(why_this_angle)}</div>'
         )
 
@@ -198,21 +175,17 @@ def angle_card(row: dict, content: dict):
     if row.get("api_cost") is not None:
         meta_parts.append(f"${float(row['api_cost']):.4f}")
     meta_html = (
-        f'<div style="margin-top:8px; font-size:0.72rem; color:{COLORS["text_hint"]};">'
+        f'<div class="wb-angle-meta">'
         + " &middot; ".join(meta_parts)
         + '</div>'
     ) if meta_parts else ""
 
-    # Full card — no bottom margin when feedback buttons follow
+    # Full card using theme CSS class
     st.markdown(
-        f'<div style="border:1px solid {COLORS["border"]}; border-radius:{BORDERS["radius_md"]}; '
-        f'padding:16px 20px; margin-bottom:4px; border-left:4px solid {ct_color}; '
-        f'background:{COLORS["surface"]}; box-shadow:{SHADOWS["sm"]};">'
-        f'<div style="margin-bottom:8px;">{badges_html}</div>'
-        f'<div style="font-size:1.05rem; font-weight:700; color:{COLORS["text_primary"]}; '
-        f'margin-bottom:6px;">{_esc(creative_angle)}</div>'
-        f'<div style="font-size:0.88rem; color:{COLORS["text_secondary"]}; line-height:1.5;">'
-        f'{_esc(call_summary)}</div>'
+        f'<div class="wb-angle-card" style="border-left:4px solid {ct_color};">'
+        f'<div class="wb-angle-badges">{badges_html}</div>'
+        f'<div class="wb-angle-title">{_esc(creative_angle)}</div>'
+        f'<div class="wb-angle-summary">{_esc(call_summary)}</div>'
         f'{quotes_html}'
         f'{arc_html}'
         f'{why_html}'
@@ -271,6 +244,12 @@ with st.sidebar:
         )
 
 
+# --- Reset page when filters change ---
+_fkey = f"{status_filter}|{ct_selected}|{intent_selected}|{min_q}|{max_q}|{start_date}|{end_date}"
+if st.session_state.get("ab_page_filter_hash") != _fkey:
+    st.session_state["ab_page"] = 0
+    st.session_state["ab_page_filter_hash"] = _fkey
+
 # --- Build PostgREST filters ---
 filters = {}
 
@@ -326,20 +305,10 @@ for row in rows:
 total = len(filtered)
 
 if total == 0:
-    # Designed empty state
-    st.markdown(
-        f'<div style="padding:32px 20px; border:1px dashed {COLORS["border"]}; '
-        f'border-radius:{BORDERS["radius_md"]}; background:{COLORS["surface"]}; '
-        f'text-align:center; box-shadow:{SHADOWS["sm"]};">'
-        f'<div style="font-size:1.8rem; margin-bottom:12px; opacity:0.4;">&#128161;</div>'
-        f'<div style="font-size:{TYPOGRAPHY["size"]["base"]}; color:{COLORS["text_hint"]}; '
-        f'line-height:1.6; max-width:400px; margin:0 auto;">'
-        f'No creative angles found matching your filters. '
-        f'Try adjusting the date range or quality threshold, '
-        f'or run WF 20 from n8n to generate new angles.'
-        f'</div>'
-        f'</div>',
-        unsafe_allow_html=True,
+    empty_state(
+        "&#128161;",
+        "No creative angles found matching your filters.",
+        "Try adjusting the date range or quality threshold, or run WF 20 from n8n to generate new angles.",
     )
 else:
     # Summary metrics
@@ -434,6 +403,9 @@ else:
                     use_container_width=True,
                 ):
                     update_angle_feedback(sid, "used", comment=comment or None, user_email=current_user)
+                    # Invalidate caches that depend on ledger data
+                    get_ledger_detail.clear()
+                    get_feedback_stats.clear()
                     st.toast("Marked as Used!")
                     st.rerun()
             with bcol2:
@@ -443,6 +415,8 @@ else:
                     use_container_width=True,
                 ):
                     update_angle_feedback(sid, "passed", comment=comment or None, user_email=current_user)
+                    get_ledger_detail.clear()
+                    get_feedback_stats.clear()
                     st.toast("Marked as Pass")
                     st.rerun()
             # Spacing after buttons
@@ -475,18 +449,13 @@ else:
                 if _fb_at:
                     _parts.append(_fb_at)
                 _attribution = (
-                    f' <span style="font-size:{TYPOGRAPHY["size"]["xs"]}; color:{COLORS["text_hint"]}; '
-                    f'font-weight:400; text-transform:none; letter-spacing:normal;">'
+                    f' <span style="font-weight:400; text-transform:none; letter-spacing:normal;">'
                     f'&middot; {" &middot; ".join(_parts)}</span>'
                 )
 
             st.markdown(
-                f'<div style="display:inline-flex; align-items:center; gap:6px; '
-                f'padding:5px 16px; border-radius:{BORDERS["radius_pill"]}; '
-                f'font-size:{TYPOGRAPHY["size"]["xs"]}; font-weight:{TYPOGRAPHY["weight"]["semibold"]}; '
-                f'color:{_b_color}; background:{_b_bg}; border:1px solid {_b_border}; '
-                f'letter-spacing:{TYPOGRAPHY["letter_spacing"]["wide"]}; text-transform:uppercase; '
-                f'box-shadow:{_b_shadow};">'
+                f'<div class="wb-feedback-pill" style="color:{_b_color}; background:{_b_bg}; '
+                f'border:1px solid {_b_border}; box-shadow:{_b_shadow};">'
                 f'{_b_icon} {_b_label}{_attribution}</div>',
                 unsafe_allow_html=True,
             )
@@ -495,16 +464,12 @@ else:
             _fb_comment = ledger_info.get("feedback_comment")
             if _fb_comment:
                 st.markdown(
-                    f'<div style="margin:6px 0 8px 0; padding:8px 14px; '
-                    f'background:{COLORS["surface_elevated"]}; '
-                    f'border-left:3px solid {COLORS["border"]}; border-radius:6px; '
-                    f'font-size:{TYPOGRAPHY["size"]["sm"]}; color:{COLORS["text_secondary"]}; '
-                    f'font-style:italic; line-height:1.5;">'
+                    f'<div class="wb-feedback-comment">'
                     f'&ldquo;{_esc(_fb_comment)}&rdquo;</div>',
                     unsafe_allow_html=True,
                 )
             else:
-                st.markdown('<div style="margin-bottom:8px;"></div>', unsafe_allow_html=True)
+                st.markdown(f'<div style="margin-bottom:{SPACING["sm"]};"></div>', unsafe_allow_html=True)
         else:
             # No ledger entry — just spacing
             st.markdown('<div style="margin-bottom:8px;"></div>', unsafe_allow_html=True)

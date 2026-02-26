@@ -31,6 +31,8 @@ COLORS = {
     "tint_success": "rgba(0, 184, 148, 0.06)",
     "tint_warning": "rgba(253, 203, 110, 0.06)",
     "tint_error": "rgba(225, 112, 85, 0.06)",
+    "tint_primary_strong": "rgba(212, 160, 60, 0.12)",
+    "tint_primary_decorative": "rgba(212, 160, 60, 0.20)",
     "tint_purple": "rgba(108, 92, 231, 0.06)",
 }
 
@@ -242,7 +244,7 @@ input[data-testid="stTextInput"] {{
     border-radius: {BORDERS["radius_sm"]} !important;
 }}
 
-/* --- Status badges --- */
+/* --- Status badges (WCAG AA 4.5:1 contrast on dark surfaces) --- */
 .wb-badge {{
     display: inline-block;
     padding: 2px 10px;
@@ -252,10 +254,10 @@ input[data-testid="stTextInput"] {{
     letter-spacing: {TYPOGRAPHY["letter_spacing"]["wide"]};
     text-transform: uppercase;
 }}
-.wb-badge-success {{ background: rgba(0, 184, 148, 0.15); color: #00B894; }}
-.wb-badge-warning {{ background: rgba(253, 203, 110, 0.15); color: #FDCB6E; }}
-.wb-badge-error {{ background: rgba(225, 112, 85, 0.15); color: #E17055; }}
-.wb-badge-info {{ background: rgba(116, 185, 255, 0.15); color: #74B9FF; }}
+.wb-badge-success {{ background: rgba(0, 184, 148, 0.15); color: #34EBC1; }}
+.wb-badge-warning {{ background: rgba(253, 203, 110, 0.15); color: #FDE68A; }}
+.wb-badge-error {{ background: rgba(225, 112, 85, 0.15); color: #F09080; }}
+.wb-badge-info {{ background: rgba(116, 185, 255, 0.15); color: #93CBFF; }}
 
 /* --- Soft horizontal divider --- */
 .wb-divider {{
@@ -340,7 +342,7 @@ input[data-testid="stTextInput"] {{
     left: 16px;
     font-family: {TYPOGRAPHY["font_family_display"]};
     font-size: 3rem;
-    color: rgba(212, 160, 60, 0.2);
+    color: {COLORS["tint_primary_decorative"]};
     line-height: 1;
     pointer-events: none;
 }}
@@ -509,6 +511,169 @@ section[data-testid="stSidebar"] a[data-testid="stSidebarNavLink"][aria-current=
     font-weight: {TYPOGRAPHY["weight"]["semibold"]};
 }}
 
+/* --- Empty state (standardized across all pages) --- */
+.wb-empty-state {{
+    padding: {SPACING["2xl"]} {SPACING["xl"]};
+    border: 1px dashed {COLORS["border"]};
+    border-radius: {BORDERS["radius_md"]};
+    background: {COLORS["surface"]};
+    text-align: center;
+    box-shadow: {SHADOWS["sm"]};
+    margin-bottom: {SPACING["lg"]};
+}}
+.wb-empty-state-icon {{
+    font-size: 1.8rem;
+    margin-bottom: {SPACING["md"]};
+    opacity: 0.4;
+}}
+.wb-empty-state-text {{
+    font-size: {TYPOGRAPHY["size"]["base"]};
+    color: {COLORS["text_hint"]};
+    line-height: {TYPOGRAPHY["line_height"]["relaxed"]};
+    max-width: 400px;
+    margin: 0 auto;
+}}
+.wb-empty-state-text strong {{
+    color: {COLORS["text_secondary"]};
+}}
+
+/* --- Angle card --- */
+.wb-angle-card {{
+    border: 1px solid {COLORS["border"]};
+    border-radius: {BORDERS["radius_md"]};
+    padding: {SPACING["lg"]} {SPACING["xl"]};
+    margin-bottom: {SPACING["xs"]};
+    background: {COLORS["surface"]};
+    box-shadow: {SHADOWS["sm"]};
+}}
+.wb-angle-card:hover {{
+    box-shadow: {SHADOWS["md"]};
+}}
+.wb-angle-badges {{
+    margin-bottom: {SPACING["sm"]};
+}}
+.wb-angle-title {{
+    font-size: 1.05rem;
+    font-weight: {TYPOGRAPHY["weight"]["bold"]};
+    color: {COLORS["text_primary"]};
+    margin-bottom: 6px;
+}}
+.wb-angle-summary {{
+    font-size: {TYPOGRAPHY["size"]["base"]};
+    color: {COLORS["text_secondary"]};
+    line-height: {TYPOGRAPHY["line_height"]["normal"]};
+}}
+.wb-angle-section-label {{
+    font-size: {TYPOGRAPHY["size"]["xs"]};
+    font-weight: {TYPOGRAPHY["weight"]["semibold"]};
+    color: {COLORS["text_secondary"]};
+    margin-bottom: {SPACING["xs"]};
+    text-transform: uppercase;
+    letter-spacing: {TYPOGRAPHY["letter_spacing"]["wide"]};
+}}
+.wb-angle-quotes {{
+    margin-top: 10px;
+}}
+.wb-angle-quotes li {{
+    margin-bottom: 6px;
+    font-style: italic;
+    color: {COLORS["text_secondary"]};
+    font-size: {TYPOGRAPHY["size"]["base"]};
+}}
+.wb-angle-arc {{
+    margin-top: 10px;
+    padding: {SPACING["sm"]} {SPACING["md"]};
+    background: {COLORS["surface_elevated"]};
+    border-radius: {BORDERS["radius_sm"]};
+    font-size: {TYPOGRAPHY["size"]["xs"]};
+}}
+.wb-angle-why {{
+    margin-top: 10px;
+    font-size: {TYPOGRAPHY["size"]["base"]};
+    color: {COLORS["text_secondary"]};
+}}
+.wb-angle-meta {{
+    margin-top: {SPACING["sm"]};
+    font-size: {TYPOGRAPHY["size"]["xs"]};
+    color: {COLORS["text_hint"]};
+}}
+
+/* --- NSM Banner --- */
+.wb-nsm-banner {{
+    display: flex;
+    align-items: center;
+    gap: {SPACING["md"]};
+    padding: {SPACING["md"]} {SPACING["xl"]};
+    background: linear-gradient(90deg, rgba(212,160,60,0.10) 0%, transparent 100%);
+    border-left: 3px solid {COLORS["primary"]};
+    border-radius: {BORDERS["radius_sm"]};
+    margin-bottom: {SPACING["md"]};
+}}
+.wb-nsm-value {{
+    font-family: {TYPOGRAPHY["font_family_display"]};
+    font-size: 1.5rem;
+    font-weight: {TYPOGRAPHY["weight"]["bold"]};
+    color: {COLORS["primary"]};
+}}
+.wb-nsm-label {{
+    font-size: {TYPOGRAPHY["size"]["sm"]};
+    color: {COLORS["text_secondary"]};
+    font-weight: {TYPOGRAPHY["weight"]["medium"]};
+}}
+.wb-nsm-billboard {{
+    background: linear-gradient(135deg, {COLORS["surface"]} 0%, rgba(212,160,60,0.08) 100%);
+    border: 1px solid rgba(212,160,60,0.25);
+    border-left: 4px solid {COLORS["primary"]};
+    border-radius: {BORDERS["radius_lg"]};
+    padding: {SPACING["xl"]};
+    box-shadow: {SHADOWS["md"]}, {SHADOWS["glow_gold"]};
+}}
+.wb-nsm-billboard-zero {{
+    background: {COLORS["surface"]};
+    border: 1px dashed {COLORS["border"]};
+    border-left: 4px solid {COLORS["text_hint"]};
+    border-radius: {BORDERS["radius_lg"]};
+    padding: {SPACING["xl"]};
+    box-shadow: {SHADOWS["sm"]};
+}}
+
+/* --- Feedback pill --- */
+.wb-feedback-pill {{
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px {SPACING["lg"]};
+    border-radius: {BORDERS["radius_pill"]};
+    font-size: {TYPOGRAPHY["size"]["xs"]};
+    font-weight: {TYPOGRAPHY["weight"]["semibold"]};
+    letter-spacing: {TYPOGRAPHY["letter_spacing"]["wide"]};
+    text-transform: uppercase;
+}}
+.wb-feedback-comment {{
+    margin: 6px 0 {SPACING["sm"]} 0;
+    padding: {SPACING["sm"]} 14px;
+    background: {COLORS["surface_elevated"]};
+    border-left: 3px solid {COLORS["border"]};
+    border-radius: 6px;
+    font-size: {TYPOGRAPHY["size"]["sm"]};
+    color: {COLORS["text_secondary"]};
+    font-style: italic;
+    line-height: {TYPOGRAPHY["line_height"]["normal"]};
+}}
+
+/* --- Target badge --- */
+.wb-target-badge {{
+    display: inline-block;
+    padding: 3px {SPACING["md"]};
+    border-radius: {BORDERS["radius_pill"]};
+    font-size: {TYPOGRAPHY["size"]["xs"]};
+    font-weight: {TYPOGRAPHY["weight"]["semibold"]};
+    color: {COLORS["primary_light"]};
+    background: rgba(212,160,60,0.12);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}}
+
 /* --- Sidebar wordmark --- */
 .wb-sidebar-wordmark {{
     margin-bottom: {SPACING["lg"]};
@@ -522,6 +687,9 @@ section[data-testid="stSidebar"] a[data-testid="stSidebarNavLink"][aria-current=
     letter-spacing: {TYPOGRAPHY["letter_spacing"]["wider"]};
     color: {COLORS["text_primary"]};
     text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }}
 .wb-sidebar-wordmark .wb-wm-brain {{
     font-family: {TYPOGRAPHY["font_family_display"]};
@@ -529,6 +697,7 @@ section[data-testid="stSidebar"] a[data-testid="stSidebarNavLink"][aria-current=
     font-size: 1.1rem;
     color: {COLORS["primary"]};
     margin-left: 4px;
+    white-space: nowrap;
 }}
 </style>
 """
@@ -638,4 +807,19 @@ def inject_plotly_title_fix():
         """,
         height=0,
         scrolling=False,
+    )
+
+
+def empty_state(icon: str, message: str, detail: str = ""):
+    """Render a standardized empty state with icon, message, and optional detail.
+
+    Uses the .wb-empty-state CSS class for consistent styling across all pages.
+    """
+    detail_html = f"<strong>{detail}</strong>" if detail else ""
+    st.markdown(
+        f'<div class="wb-empty-state">'
+        f'<div class="wb-empty-state-icon">{icon}</div>'
+        f'<div class="wb-empty-state-text">{message} {detail_html}</div>'
+        f'</div>',
+        unsafe_allow_html=True,
     )
