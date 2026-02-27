@@ -164,6 +164,7 @@ with st.spinner("Loading objection data..."):
             obj_data = (
                 client.table("v_objection_frequencies")
                 .select("*")
+                .limit(500)
                 .execute()
                 .data
             )

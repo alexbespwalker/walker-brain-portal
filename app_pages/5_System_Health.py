@@ -42,6 +42,7 @@ with st.spinner("Loading summary..."):
             get_supabase().table("analysis_results")
             .select("quality_score", count="exact")
             .gte("analyzed_at", _cutoff_7d)
+            .limit(10000)
             .execute()
         )
         _total_7d = _summary_rows.count or 0
@@ -252,6 +253,7 @@ with st.spinner("Loading throughput data..."):
             client.table("analysis_results")
             .select("analyzed_at, validation_passed, confidence_score", count="exact")
             .gte("analyzed_at", cutoff)
+            .limit(10000)
             .execute()
         )
         total = rows.count or 0

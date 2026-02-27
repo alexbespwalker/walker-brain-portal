@@ -382,6 +382,7 @@ def get_testimonial_pipeline(
         client.table("testimonial_pipeline")
         .select("*")
         .order("quality_score", desc=True)
+        .limit(500)
     )
     if status:
         q = q.eq("status", status)
@@ -678,6 +679,7 @@ def get_ledger_detail(transcript_ids: tuple) -> dict:
         client.table("surfacing_ledger")
         .select("source_transcript_id, usage_status, feedback_comment, feedback_by, feedback_at")
         .in_("source_transcript_id", list(transcript_ids))
+        .limit(500)
         .execute()
         .data
     )
